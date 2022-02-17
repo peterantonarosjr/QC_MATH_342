@@ -105,7 +105,19 @@ Create a list-within-a-list that will intelligently store this data.
 ```{r}
 #HINT: 
 #strsplit("Theodore, Bernard, Gene, Herbert, Ray, Tom, Lee, Alfred, Leroy, Eddie", split = ", ")[[1]]
-#TO-DO
+my_list = list()
+my_list$m = list()
+my_list$f = list()
+
+my_list$m$Millennial = strsplit("Zachary, Dylan, Christian, Wesley, Seth, Austin, Gabriel, Evan, Casey, Luis",split = ", ")[[1]]
+my_list$m$GenX = strsplit("Marc, Jamie, Greg, Darryl, Tim, Dean, Jon, Chris, Troy, Jeff",split = ", ")[[1]]
+my_list$m$Boomer = strsplit("Theodore, Bernard, Gene, Herbert, Ray, Tom, Lee, Alfred, Leroy, Eddie",split = ", ")[[1]]
+
+my_list$f$GenX = strsplit("Tracy, Dawn, Tina, Tammy, Melinda, Tamara, Tracey, Colleen, Sherri, Heidi",split = ", ")[[1]]
+my_list$f$Boomer = strsplit("Gloria, Joan, Dorothy, Shirley, Betty, Dianne, Kay, Marjorie, Lorraine, Mildred",split = ", ")[[1]]
+my_list$f$Millennial = strsplit("Samantha, Alexis, Brittany, Lauren, Taylor, Bethany, Latoya, Candice, Brittney, Cheyenne",split = ", ")[[1]]
+
+my_list
 ```
 
 ## Dataframe creation
@@ -115,8 +127,28 @@ Imagine you are running an experiment with many manipulations. You have 14 level
 
 ```{r}
 n = 14 * 3 * 2 * 3 * 10
-#X = data.frame(treatment = rep...,
+#treatments = copy the reps VVV
+#variations =
+#genders =
+#generations =
+#X = data.frame(
+  treatment = rep(letters[1:14],each=6*3*2*3),
+  variation = rep(rep(c("A","B","C"),each=6*3*2),times=14),
+  gender = rep(rep(c("m","f"),each=18),times=3*14),
+  generation =rep(rep(c("Millenial","GenX","Boomer"),each=6),times=2*3*14),
+  name = NA,
+  y = NA
+)
 
+for(treament in treatments){
+  for(variation in variations){
+    for(gender in genders){
+      for(generation in generations){
+        
+      }
+    }
+  }
+}
 #TO-DO
 ```
 
@@ -139,7 +171,7 @@ pacman::p_load(testthat)
 
 ```{r}
 v= seq(-100, 100)
-expect_equal(v, -100 : 101)
+expect_equal(v, -100 : 100)
 ```
 
 If there are any errors, the `expect_equal` function will tell you about them. If there are no errors, then it will be silent.
