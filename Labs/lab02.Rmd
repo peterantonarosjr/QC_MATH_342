@@ -292,28 +292,50 @@ sum(gModel(cleanedIris$Sepal.Length) != y)
 You will code the "perceptron learning algorithm" for arbitrary number of features p. Take a look at the comments above the function. Respect the spec below:
 
 ```{r}
-#' TO-DO: Provide a name for this function 
+#' TO-DO: Provide a name for this function: perceptron_learning_algorithm
 #'
-#' TO-DO: Explain what this function does in a few sentences
+#' TO-DO: This function implements the perceptron algorithm; Supervised Learning method of binary classifiers. Will attempt to converge to a line which discriminates the binary responses
 #'
-#' @param Xinput      TO-DO: Explain this
-#' @param y_binary    TO-DO: Explain this
-#' @param MAX_ITER    TO-DO: Explain this
-#' @param w           TO-DO: Explain this
+#' @param Xinput      TO-DO: Matrix of features, can be "p" of them -> [(X1...Xn),(X2...Xn)...(Xp...Xn)]
+#' @param y_binary    TO-DO: Explain this -> Vector of Binary classification (labels)
+#' @param MAX_ITER    TO-DO: Explain this -> Max allowable iterations to run (in case we never achieve "low enough" error)
+#' @param w           TO-DO: Explain this -> The input layers
 #'
 #' @return            The computed final parameter (weight) as a vector of length p + 1
 perceptron_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 1000, w = NULL){
-  #TO-DO
+  
+  Xinput = as.matrix(cbind(1,Xinput))
+  p = ncol(Xinput) #Number of features
+  w = rep(0,p) # Initialize w
+      
+  for(iteration in 1:MAX_ITER){ #Max iterations for "tuning" the line
+    
+    for(row in 1:nrow(Xinput)){ #Iterating over our matrix
+      
+      x_i = Xinput[row,]  #ith matrix row
+      y_i = y_binary[row]  #ith Binary Classification 
+      yHat_i = ifelse(sum(x_i*w)>0,1,0)  #ith yHat
+        
+      
+      for(currFeature in 1:p){
+        w[currFeature] = w[currFeature] + ((y_i-yHat_i)*(x_i[currFeature]))
+        
+      }
+    }
+    
+  }
+  return(w)
 }
+
 ```
 
 To understand what the algorithm is doing - linear "discrimination" between two response categories, we can draw a picture. First let's make up some very simple training data D.
 
 ```{r}
 Xy_simple = data.frame(
- response = factor(c(0, 0, 0, 1, 1, 1)), #nominal
- first_feature = c(1, 1, 2, 3, 3, 4),    #continuous
- second_feature = c(1, 2, 1, 3, 4, 3)    #continuous
+ response = factor(c(0, 0, 0, 1, 1, 1)), #nominal -> Classification of "Data Points" (x1,x2)
+ first_feature = c(1, 1, 2, 3, 3, 4),    #continuous x1 (x1,x2) -> Data Points
+ second_feature = c(1, 2, 1, 3, 4, 3)    #continuous x2 (x1,x2) -> Data Points
 )
 ```
 
@@ -359,12 +381,17 @@ simple_viz_obj + simple_perceptron_line
 
 Explain this picture. Why is this line of separation not "satisfying" to you?
 
-TO-DO 
+This picture is not really satisfying because although it is separating the data points, a much "cleaner" line would be something that is perpendicular to this line.  With a perpendicular line to the one found there would be little dispute as to the separation between the two classifications.
 
 For extra credit, program the maximum-margin hyperplane perceptron that provides the best linear discrimination model for linearly separable data. Make sure you provide ROxygen documentation for this function.
 
 ```{r}
-#TO-DO
+maxMargion_hyperplane_perceptron = function(Xinput, y_binary, MAX_ITER = 1000, w = NULL){
+  Xinput = as.matrix(cbind(1,Xinput))
+  p = ncol(Xinput) #Number of features
+  w = rep(0,p) # Initialize w
+  
+}
 ```
 
 
@@ -389,11 +416,12 @@ Use the `e1071` package to fit an SVM model to the simple data. Use a formula to
 ```{r}
 pacman::p_load(e1071)
 svm_model = svm(
-  formula = #TO-DO, 
-  data = #TO-DO, 
+  formula = Xy_simple$response ~., 
+  data = Xy_simple, 
   kernel = "linear", 
   scale = FALSE
 )
+?svm
 ```
 
 and then use the following code to visualize the line in purple:
@@ -428,7 +456,7 @@ simple_viz_obj + simple_perceptron_line + simple_svm_line
 
 Is this SVM line a better fit than the perceptron?
 
-TO-DO
+Yes the SVM line is a better fit than the perceptron line.  The perceptron line leaves some "room" to interpretation about what class some points are in due to the small margin.  The SVM has a large margin between classes and so there is a clear distinction between the two.
 
 Now write pseuocode for your own implementation of the linear support vector machine algorithm using the Vapnik objective function we discussed.
 
