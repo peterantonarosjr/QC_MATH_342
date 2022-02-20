@@ -66,16 +66,19 @@ Run the following code:
 
 ```{r}
 lapply(my_list, object.size)
+?object.size
 ```
 
 Use `?object.size` to read about what these functions do. Then explain the output you see above. For the later arrays, does it make sense given the dimensions of the arrays?
 
-#TO-DO
+object.size -> Provides an estimate of the memory that is being used to store an R object.  Applying object.size to my_list is returning an estimate to the byte space occupied by sequential level elements.
 
 Now cleanup the namespace by deleting all stored objects and functions:
 
 ```{r}
-#TO-DO
+#remove(my_list,i,v,flip_matrix,my_reverse)
+#The following is nicer because we are "automatically" putting all objects/functions in a list for removal rather than manually specifying
+rm(list = ls())
 ```
 
 ## A little about strings
@@ -85,10 +88,18 @@ Now cleanup the namespace by deleting all stored objects and functions:
 ```{r}
 lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi posuere varius volutpat. Morbi faucibus ligula id massa ultricies viverra. Donec vehicula sagittis nisi non semper. Donec at tempor erat. Integer dapibus mi lectus, eu posuere arcu ultricies in. Cras suscipit id nibh lacinia elementum. Curabitur est augue, congue eget quam in, scelerisque semper magna. Aenean nulla ante, iaculis sed vehicula ac, finibus vel arcu. Mauris at sodales augue. "
 
-strsplit(x=lorem, split = "\\.\\s")
-#Add period back to each of them
-#Sample them 
-#Concat back for paragraph of random sentences
+splitList = strsplit(x=lorem, split = "\\.\\s")
+splitLength = length(splitList[[1]])
+samplingList = vector(mode = "list", length = splitLength)
+
+for(i in 1:splitLength){
+  
+  samplingList[[i]] = paste(splitList[[1]][i],". ",sep="")
+}
+
+finalList = sample(samplingList,size=splitLength,replace=FALSE)
+paste(finalList, collapse = '')
+
 ```
 
 You have a set of names divided by gender (M / F) and generation (Boomer / GenX / Millenial):
@@ -103,8 +114,6 @@ You have a set of names divided by gender (M / F) and generation (Boomer / GenX 
 Create a list-within-a-list that will intelligently store this data.
 
 ```{r}
-#HINT: 
-#strsplit("Theodore, Bernard, Gene, Herbert, Ray, Tom, Lee, Alfred, Leroy, Eddie", split = ", ")[[1]]
 my_list = list()
 my_list$m = list()
 my_list$f = list()
@@ -158,6 +167,7 @@ Install the package `pacman` using regular base R.
 
 ```{r}
 install.packages("pacman")
+install.packages("ggplot2")
 ```
 
 
@@ -170,8 +180,9 @@ pacman::p_load(testthat)
 * Create vector `v` consisting of all numbers from -100 to 100 and test using the second line of code su
 
 ```{r}
-v= seq(-100, 100)
+v = seq(-100, 100)
 expect_equal(v, -100 : 100)
+v
 ```
 
 If there are any errors, the `expect_equal` function will tell you about them. If there are no errors, then it will be silent.
@@ -188,7 +199,11 @@ expect_equal(my_reverse(c("A", "B", "C")), c("C", "B", "A"))
 * Load the famous `iris` data frame into the namespace. Provide a summary of the columns using the `skim` function in package `skimr` and write a few descriptive sentences about the distributions using the code below in English.
 
 ```{r}
-#TO-DO
+library(datasets)
+data(iris)
+summary(iris)
+skimr::skim(iris)
+iris
 ```
 
 TO-DO: describe this data
@@ -196,37 +211,66 @@ TO-DO: describe this data
 The outcome / label / response is `Species`. This is what we will be trying to predict. However, we only care about binary classification between "setosa" and "versicolor" for the purposes of this exercise. Thus the first order of business is to drop one class. Let's drop the data for the level "virginica" from the data frame.
 
 ```{r}
-#TO-DO
+cleanedIris = iris[(iris$Species!="virginica"),]
+cleanedIris
+
 ```
 
 Now create a vector `y` that is length the number of remaining rows in the data frame whose entries are 0 if "setosa" and 1 if "versicolor".
 
 ```{r}
-#TO-DO
+y = rep(NA,nrow(cleanedIris))
+
+binary_classify = function(input){
+  return(as.integer(input!="setosa"))
+}
+
+for(i in 1:length(y)){
+  y[i] = binary_classify(as.vector(cleanedIris$Species)[i])
+}
+
 ```
 
 * Write a function `mode` returning the sample mode of a vector of numeric values. Try not to look in the class notes.
 
 ```{r}
-#TO-DO
+#If unique elements all appear same # of times, let R decide what to return as the mode
+mode = function(vec){
+  samp = unique(vec)
+  samp[which.max(tabulate(match(vec,samp)))]
+}
+mode(y)
+
 ```
 
 * Fit a threshold model to `y` using the feature `Sepal.Length`. Write your own code to do this. What is the estimated value of the threshold parameter? Save the threshold value as `threshold`. 
 
 ```{r}
-#TO-DO
+dataLen = nrow(cleanedIris)
+numOfErrors = array(NA,dataLen)
+for(i in 1:dataLen){
+  currThreshCheck = as.numeric(cleanedIris$Sepal.Length > cleanedIris$Sepal.Length[i])
+  numOfErrors[i] = sum(currThreshCheck!=y)
+}
+
+theta = cleanedIris$Sepal.Length[which.min(numOfErrors)]
+plot(as.vector(cleanedIris$Sepal.Length),y,xlab="Sepal Length", ylab="Binary Classification")
+abline(v = theta)
+
 ```
 
 What is the total number of errors this model makes?
 
 ```{r}
-#TO-DO
+#Errors per theta "threshold" value
+numOfErrors
+
 ```
 
 Does the threshold model's performance make sense given the following summaries:
 
 ```{r}
-threshold
+theta
 summary(iris[iris$Species == "setosa", "Sepal.Length"])
 summary(iris[iris$Species == "versicolor", "Sepal.Length"])
 ```
@@ -236,9 +280,10 @@ TO-DO: Write your answer here in English.
 Create the function `g` explicitly that can predict `y` from `x` being a new `Sepal.Length`.
 
 ```{r}
-g = function(x){
-  #TO-DO
+gModel = function(x){
+  as.numeric(x > theta)
 }
+sum(gModel(cleanedIris$Sepal.Length) != y)
 ```
 
 
