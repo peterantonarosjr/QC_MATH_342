@@ -332,10 +332,16 @@ perceptron_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 1000, w = 
 To understand what the algorithm is doing - linear "discrimination" between two response categories, we can draw a picture. First let's make up some very simple training data D.
 
 ```{r}
+#Xy_simple = data.frame(
+ #response = factor(c(0, 0, 0, 1, 1, 1)), #nominal -> Classification of "Data Points" (x1,x2)
+ #first_feature = c(1, 1, 2, 3, 3, 4),    #continuous x1 (x1,x2) -> Data Points
+ #second_feature = c(1, 2, 1, 3, 4, 3)    #continuous x2 (x1,x2) -> Data Points
+#)
+
 Xy_simple = data.frame(
- response = factor(c(0, 0, 0, 1, 1, 1)), #nominal -> Classification of "Data Points" (x1,x2)
- first_feature = c(1, 1, 2, 3, 3, 4),    #continuous x1 (x1,x2) -> Data Points
- second_feature = c(1, 2, 1, 3, 4, 3)    #continuous x2 (x1,x2) -> Data Points
+ response = factor(c(0, 1)), #nominal -> Classification of "Data Points" (x1,x2)
+ first_feature = c(-1, 1),    #continuous x1 -> Data Points
+ second_feature = c(-1, 1)    #continuous x2 -> Data Points
 )
 ```
 
