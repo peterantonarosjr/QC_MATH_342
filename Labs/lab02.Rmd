@@ -136,29 +136,17 @@ Imagine you are running an experiment with many manipulations. You have 14 level
 
 ```{r}
 n = 14 * 3 * 2 * 3 * 10
-#treatments = copy the reps VVV
-#variations =
-#genders =
-#generations =
-#X = data.frame(
-  treatment = rep(letters[1:14],each=6*3*2*3),
-  variation = rep(rep(c("A","B","C"),each=6*3*2),times=14),
-  gender = rep(rep(c("m","f"),each=18),times=3*14),
-  generation =rep(rep(c("Millenial","GenX","Boomer"),each=6),times=2*3*14),
-  name = NA,
-  y = NA
-)
+#Init the dataframe with the required number fo rows and proper columns
+X = data.frame(treatment = rep(NA,n), variation = rep(NA,n), gender = rep(NA,n), generation = rep(NA,n),  name = rep(NA,n), y = rep(NA,n))
 
-for(treament in treatments){
-  for(variation in variations){
-    for(gender in genders){
-      for(generation in generations){
-        
-      }
-    }
-  }
-}
-#TO-DO
+#Place proper information with correct duplication into respective columns
+X$treatment = rep(letters[1:14], each=n/14)
+X$variation =rep(rep(LETTERS[1:3], each=n/42), times = 14)
+X$gender = rep(rep(c("M","F"), each = n/84), times =14*3)
+X$generation = rep(rep(c("Boomer","GenX","Millenial"), each = n/14/3/2/3), times = 14*3*2)
+X$name = rep(unlist(my_list), times = 14*3)
+X
+
 ```
 
 ## Packages
@@ -276,7 +264,7 @@ summary(iris[iris$Species == "setosa", "Sepal.Length"])
 summary(iris[iris$Species == "versicolor", "Sepal.Length"])
 ```
 
-TO-DO: Given the information above, it seems like the Threshold model is doing about as expected.  It is better than the null model but no where near as good as a more complicated algorithm.  Although its not that accurate I enjoy it just because its a super simple algorithm that delivers "decent" results, and aligns with the values above (not that great but better than g0)
+Given the information above, it seems like the Threshold model is doing about as expected.  It is better than the null model but no where near as good as a more complicated algorithm.  Although its not that accurate I enjoy it just because its a super simple algorithm that delivers "decent" results, and aligns with the values above (not that great but better than g0)
 
 Create the function `g` explicitly that can predict `y` from `x` being a new `Sepal.Length`.
 
