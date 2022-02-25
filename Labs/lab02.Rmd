@@ -198,12 +198,13 @@ expect_equal(my_reverse(c("A", "B", "C")), c("C", "B", "A"))
 
 * Load the famous `iris` data frame into the namespace. Provide a summary of the columns using the `skim` function in package `skimr` and write a few descriptive sentences about the distributions using the code below in English.
 
+I was most interested in seeing where the distributions were centered around for the 3 different species.  In addition to this we can also see that the histograms were generally not normally distributed.  (Not sure if this is right, but at least from the ASCII hists below thats what it looks like)
+
 ```{r}
 library(datasets)
 data(iris)
 summary(iris)
 skimr::skim(iris)
-iris
 ```
 
 TO-DO: describe this data
@@ -275,7 +276,7 @@ summary(iris[iris$Species == "setosa", "Sepal.Length"])
 summary(iris[iris$Species == "versicolor", "Sepal.Length"])
 ```
 
-TO-DO: Write your answer here in English.
+TO-DO: Given the information above, it seems like the Threshold model is doing about as expected.  It is better than the null model but no where near as good as a more complicated algorithm.  Although its not that accurate I enjoy it just because its a super simple algorithm that delivers "decent" results, and aligns with the values above (not that great but better than g0)
 
 Create the function `g` explicitly that can predict `y` from `x` being a new `Sepal.Length`.
 
@@ -304,6 +305,7 @@ You will code the "perceptron learning algorithm" for arbitrary number of featur
 #' @return            The computed final parameter (weight) as a vector of length p + 1
 perceptron_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 1000, w = NULL){
   
+  
   Xinput = as.matrix(cbind(1,Xinput))
   p = ncol(Xinput) #Number of features
   w = rep(0,p) # Initialize w
@@ -324,9 +326,33 @@ perceptron_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 1000, w = 
     }
     
   }
-  return(w)
+  w
 }
-
+#Second implementation
+perceptron_learning_algorithm2 = function(Xinput, y_binary, MAX_ITER = 1000, w = NULL){
+  
+  
+  Xinput = as.matrix(cbind(1,Xinput))
+  p = ncol(Xinput) #Number of features
+  w = rep(0,p) # Initialize w
+      
+  for(iteration in 1:MAX_ITER){ #Max iterations for "tuning" the line
+    
+    
+    yhat_vec = as.numeric(Xinput %*% w > 0)
+    w_0 = w
+    for(i in 1:nrow(Xinput)){
+      
+      w = w+(y_binary[i]-yhat_vec[i])*Xinput[i,]
+    }
+    
+    if(all(w==w_0)){
+      break
+    }
+  
+  }
+  w
+}
 ```
 
 To understand what the algorithm is doing - linear "discrimination" between two response categories, we can draw a picture. First let's make up some very simple training data D.
@@ -339,9 +365,9 @@ To understand what the algorithm is doing - linear "discrimination" between two 
 #)
 
 Xy_simple = data.frame(
- response = factor(c(0, 1)), #nominal -> Classification of "Data Points" (x1,x2)
- first_feature = c(-1, 1),    #continuous x1 -> Data Points
- second_feature = c(-1, 1)    #continuous x2 -> Data Points
+ response = factor(c(0, 0, 0, 1, 1, 1)), #nominal -> Classification of "Data Points" (x1,x2)
+ first_feature = c(1, 1, 2, 3, 3, 4),    #continuous
+ second_feature = c(1, 2, 1, 3, 4, 3)   #continuous x2 -> Data Points
 )
 ```
 
@@ -363,10 +389,12 @@ simple_viz_obj
 
 TO-DO: Explain this picture.
 
+Here we can see the data points being plotted on first VS second feature.  They are colored according to their response classification.
+
 Now, let us run the algorithm and see what happens:
 
 ```{r}
-w_vec_simple_per = perceptron_learning_algorithm(
+w_vec_simple_per = perceptron_learning_algorithm2(
   cbind(Xy_simple$first_feature, Xy_simple$second_feature),
   as.numeric(Xy_simple$response == 1))
 w_vec_simple_per
@@ -387,7 +415,7 @@ simple_viz_obj + simple_perceptron_line
 
 Explain this picture. Why is this line of separation not "satisfying" to you?
 
-This picture is not really satisfying because although it is separating the data points, a much "cleaner" line would be something that is perpendicular to this line.  With a perpendicular line to the one found there would be little dispute as to the separation between the two classifications.
+This picture is somewhat satisfying because there is a clear distinguishing line between the two groups. The only "issue" I would have with it looking at it as a human, is the line is not centered between the two groups.  I assume this will be fixed in the SVM because thats what it seems like my brain is doing automatically.
 
 For extra credit, program the maximum-margin hyperplane perceptron that provides the best linear discrimination model for linearly separable data. Make sure you provide ROxygen documentation for this function.
 
@@ -427,7 +455,6 @@ svm_model = svm(
   kernel = "linear", 
   scale = FALSE
 )
-?svm
 ```
 
 and then use the following code to visualize the line in purple:
@@ -448,7 +475,7 @@ simple_viz_obj + simple_svm_line
 Source the `perceptron_learning_algorithm` function from lab 2. Then run the following to fit the perceptron and plot its line in orange with the SVM's line:
 
 ```{r}
-w_vec_simple_per = perceptron_learning_algorithm(
+w_vec_simple_per = perceptron_learning_algorithm2(
   cbind(Xy_simple$first_feature, Xy_simple$second_feature),
   as.numeric(Xy_simple$response == 1)
 )
@@ -462,7 +489,7 @@ simple_viz_obj + simple_perceptron_line + simple_svm_line
 
 Is this SVM line a better fit than the perceptron?
 
-Yes the SVM line is a better fit than the perceptron line.  The perceptron line leaves some "room" to interpretation about what class some points are in due to the small margin.  The SVM has a large margin between classes and so there is a clear distinction between the two.
+Yes the SVM line is a better fit than the perceptron line.  The perceptron line doesn't divide the space of the two responses "evenly".  The SVM lines splits the margin between the two groups down the middle.
 
 Now write pseuocode for your own implementation of the linear support vector machine algorithm using the Vapnik objective function we discussed.
 
@@ -481,7 +508,12 @@ Note there are differences between this spec and the perceptron learning algorit
 #'                    The default value is 1.
 #' @return            The computed final parameter (weight) as a vector of length p + 1
 linear_svm_learning_algorithm = function(Xinput, y_binary, MAX_ITER = 5000, lambda = 0.1){
-  #TO-DO: write pseudo code in comments
+  # for i -> MAX_ITER:
+  #    xi = Xinput[i]
+  #    yhat_i = if xi * vector = 0 then yhat_i = 1, else yhat_i = 1
+  #    y_i = y_binary[i]
+  #    vector[i] = vector[i]+(y_i-yhat_i) * xi[,1->last col]
+  # return vector
 }
 ```
 
@@ -522,29 +554,58 @@ TO-DO
 Write a k = 1 nearest neighbor algorithm using the Euclidean distance function. The following comments are standard "Roxygen" format for documentation. Hopefully, we will get to packages at some point and we will go over this again. It is your job also to fill in this documentation.
 
 ```{r}
-#' TO-DO: Provide a name for this function 
 #'
-#' TO-DO: Explain what this function does in a few sentences
+#' TO-DO: This function is a k=1 nearest neighbor algorithm. We are looking for the shortest distance between a point and 1 other point. This is a classification method for estimating the likelihood that a data point will become a member of one group or another based on what group the data points nearest to it belong to. In our case once again only using 1 data point.
 #'
-#' @param Xinput      TO-DO: explain this argument
-#' @param y_binary    TO-DO: explain this argument
-#' @param Xtest       TO-DO: explain this argument
-#' @return            TO-DO: explain this argument
+#' @param Xinput      
+#' @param y_binary    
+#' @param Xtest       
+#' @return            
 nn_algorithm_predict = function(Xinput, y_binary, Xtest){
-  #TO-DO
+
+  yhat = arrary(NA,nrow(Xtest))
+  for(istar in 1:nrow(Xtest)){
+    
+    y_hat[istar] = y_binary[which.min(rowSums(t(t(Xinput)-Xtest[istar,])^2))]
+    
+  }
+  yhat
 }
 ```
 
 Write a few tests to ensure it actually works:
 
 ```{r}
-#TO-DO
+X_simple = data.frame(
+ response = factor(c(0, 0, 0, 1, 1, 1)), #nominal
+ first_feature = c(1, 1, 2, 3, 3, 4),    #continuous
+ second_feature = c(1, 2, 1, 3, 4, 3)    #continuous
+)
+
 ```
 
 We now add an argument `d` representing any legal distance function to the `nn_algorithm_predict` function. Update the implementation so it performs NN using that distance function. Set the default function to be the Euclidean distance in the original function. Also, alter the documentation in the appropriate places.
 
 ```{r}
-#TO-DO
+nn_algorithm_predict2 = function(Xinput, y_binary, Xtest, d = NULL){
+  if(is.null(d)){
+    d = function(xj, xstar){
+      sum((xj-xstar)^2)
+    }
+  }
+  yhat = arrary(NA,nrow(Xtest))
+  for(istar in 1:nrow(Xtest)){
+    
+    dists = array(NA,nrow(Xinput))
+    dists[i] = d(Xinput[i, ],Xstar[istar, ])
+    for(i in 1:nrow(Xinput)){
+      
+      y_hat[istar] = y_binary[which.min(dists)]
+    }
+    
+  }
+  yhat
+}
 ```
 
 For extra credit (unless you're a masters student), add an argument `k` to the `nn_algorithm_predict` function and update the implementation so it performs KNN. In the case of a tie, choose yhat randomly. Set the default `k` to be the square root of the size of D which is an empirical rule-of-thumb popularized by the "Pattern Classification" book by Duda, Hart and Stork (2007). Also, alter the documentation in the appropriate places.
