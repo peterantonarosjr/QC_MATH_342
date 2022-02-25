@@ -390,7 +390,11 @@ w_vec_simple_per
 
 Explain this output. What do the numbers mean? What is the intercept of this line and the slope? You will have to do some algebra.
 
-TO-DO
+4.25 + 1x1 -1x2 = P-Dimensional Line or (Plane for p>2)
+
+Intercept is 4.25
+The slope means that as feature x1 gets larger feature x2 gets smaller
+Line separates the space into the two responses it is the "border" between these two distinct regions
 
 
 ```{r}
