@@ -272,7 +272,8 @@ Create the function `g` explicitly that can predict `y` from `x` being a new `Se
 gModel = function(x){
   as.numeric(x > theta)
 }
-sum(gModel(cleanedIris$Sepal.Length) != y)
+#Uncomment to see number of "wrong" predicitions
+#sum(gModel(cleanedIris$Sepal.Length) != y)
 ```
 
 
