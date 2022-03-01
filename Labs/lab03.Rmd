@@ -20,9 +20,9 @@ beta_1 = -2
 Compute h^* as `h_star_x`, then draw epsilon from an iid N(0, 0.33^2) distribution as `epsilon`, then compute the vector y.
 
 ```{r}
-h_star_x = #TO-DO 
-epsilon = #TO-DO
-y = #TO-DO
+h_star_x = beta_0+beta_1*x
+epsilon = rnorm(10,0,.33^2)
+y = h_star_x + epsilon
 ```
 
 Graph the data by running the following chunk:
@@ -42,7 +42,37 @@ Write a function `my_simple_ols` that takes in a vector `x` and vector `y` and r
 ```{r}
 my_simple_ols = function(x, y){
   ols_obj = list()
-  #TO-DO
+  
+  y_bar = sum(y)/n
+  x_bar = sum(x)/n
+  
+  s_y = sqrt((sum(y-y_bar)^2)/(n-1))
+  s_x = sqrt((sum(x-x_bar)^2)/(n-1))
+  s_xy = sum((x-x_bar)*(y-y_bar))/(n-1)
+  r = s_xy/(s_x*s_y)
+  
+  b_1 = r*(s_y/s_x)
+  b0 = y_bar - b_1*x_bar
+  
+  yhat = b0+(b_1*x)
+  
+  e = y-yhat
+  sse = sum(e^2)
+  sst = sum((y-y_bar)^2)
+  mse = sse/(n-2)
+  rmse = sqrt(mse)
+  
+  r_square = 1-(sse/sst)
+  
+  ols_obj$b0 = b0
+  ols_obj$b_1 = b_1
+  ols_obj$yhat = yhat
+  ols_obj$e = e
+  ols_obj$sse = sse
+  ols_obj$sst = sst
+  ols_obj$mse = mse
+  ols_obj$rmse = rmse
+  ols_obj$r_square = r_square
   
   class(ols_obj) = "my_simple_ols_obj"
   ols_obj
@@ -143,13 +173,16 @@ TO-DO
 Find the average height (include both parents and children in this computation).
 
 ```{r}
-#TO-DO
+y = c(Galton$parent, Galton$child)
+y_bar = sum(y)/(2*nrow(Galton))
+y_bar
 ```
 
 If you were predicting child height from parent and you were using the null model, what would the RMSE be of this model be?
 
 ```{r}
-#TO-DO
+sse0 = sum((y-y_bar)^2)
+rmse0 = sqrt(sse0/(2*nrow(Galton)-2))
 ```
 
 Note that in Math 241 you learned that the sample average is an estimate of the "mean", the population expected value of height. We will call the average the "mean" going forward since it is probably correct to the nearest tenth of an inch with this amount of data.
@@ -157,7 +190,7 @@ Note that in Math 241 you learned that the sample average is an estimate of the 
 Run a linear model attempting to explain the childrens' height using the parents' height. Use `lm` and use the R formula notation. Compute and report b_0, b_1, RMSE and R^2. 
 
 ```{r}
-#TO-DO
+my_simple_ols(Galton$parent, Galton$child)
 ```
 
 Interpret all four quantities: b_0, b_1, RMSE and R^2. Use the correct units of these metrics in your answer.
@@ -216,17 +249,18 @@ rm(list = ls())
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 50\% and RMSE approximately 1.
 
 ```{r}
-x = #TO-DO
-y = #TO-DO
+x = 
+y = 
 Xy = data.frame(x = x, y = y)
 ```
 
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 0\% but x, y are clearly associated.
 
 ```{r}
-x = #TO-DO
-y = #TO-DO
+x = (-10:10)
+y = x^2
 Xy = data.frame(x = x, y = y)
+my_simple_ols(x,y)
 ```
 
 Extra credit but required for 650 students: create a dataset D and a model that can give you R^2 arbitrarily close to 1 i.e. approximately 1 - epsilon but RMSE arbitrarily high i.e. approximately M.
