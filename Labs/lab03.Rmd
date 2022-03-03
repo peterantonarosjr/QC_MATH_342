@@ -48,13 +48,13 @@ my_simple_ols = function(x, y){
   
   s_y = sqrt((sum(y-y_bar)^2)/(n-1))
   s_x = sqrt((sum(x-x_bar)^2)/(n-1))
-  s_xy = sum((x-x_bar)*(y-y_bar))/(n-1)
+  s_xy = sum((x-x_bar)*(y-y_bar))/(n)
   r = s_xy/(s_x*s_y)
   
   b_1 = r*(s_y/s_x)
-  b0 = y_bar - b_1*x_bar
+  b_0 = y_bar - (b_1*x_bar)
   
-  yhat = b0+(b_1*x)
+  yhat = b_0+(b_1*x)
   
   e = y-yhat
   sse = sum(e^2)
@@ -64,7 +64,7 @@ my_simple_ols = function(x, y){
   
   r_square = 1-(sse/sst)
   
-  ols_obj$b0 = b0
+  ols_obj$b_0 = b_0
   ols_obj$b_1 = b_1
   ols_obj$yhat = yhat
   ols_obj$e = e
@@ -82,26 +82,29 @@ my_simple_ols = function(x, y){
 Verify your computations are correct for the vectors `x` and `y` from the first chunk using the `lm` function in R:
 
 ```{r}
-lm_mod = #TO-DO
-my_simple_ols_mod = #TO-DO
-#run the tests to ensure the function is up to spec
+lm_mod = lm(y~x)
+my_simple_ols_mod = my_simple_ols(x,y)
+lm_mod
+my_simple_ols_mod
+
 pacman::p_load(testthat)
 expect_equal(my_simple_ols_mod$b_0, as.numeric(coef(lm_mod)[1]), tol = 1e-4)
 expect_equal(my_simple_ols_mod$b_1, as.numeric(coef(lm_mod)[2]), tol = 1e-4)
 expect_equal(my_simple_ols_mod$RMSE, summary(lm_mod)$sigma, tol = 1e-4)
 expect_equal(my_simple_ols_mod$Rsq, summary(lm_mod)$r.squared, tol = 1e-4)
+
 ```
 
 Verify that the average of the residuals is 0 using the `expect_equal`. Hint: use the syntax above.
 
 ```{r}
-#TO-DO
+expect_equal(my_simple_ols_mod$mse, anova(lm_mod)['Residuals', 'Mean Sq'] , tol = 1e-4)
 ```
 
 Create the $X$ matrix for this data example. Make sure it has the correct dimension.
 
 ```{r}
-#TO-DO
+
 ```
 
 Use the `model.matrix` function to compute the matrix `X` and verify it is the same as your manual construction.
@@ -191,7 +194,7 @@ Note that in Math 241 you learned that the sample average is an estimate of the 
 Run a linear model attempting to explain the childrens' height using the parents' height. Use `lm` and use the R formula notation. Compute and report b_0, b_1, RMSE and R^2. 
 
 ```{r}
-my_simple_ols(Galton$parent, Galton$child)
+galtonModel = my_simple_ols(Galton$parent, Galton$child)
 ```
 
 Interpret all four quantities: b_0, b_1, RMSE and R^2. Use the correct units of these metrics in your answer.
@@ -217,9 +220,9 @@ pacman::p_load(ggplot2)
 ggplot(Galton, aes(x = parent, y = child)) + 
   geom_point() + 
   geom_jitter() +
-  geom_abline(intercept = b_0, slope = b_1, color = "blue", size = 1) +
+  geom_abline(intercept = galtonModel$b_0, slope = galtonModel$b_1, color = "blue", size = 1) +
   geom_abline(intercept = 0, slope = 1, color = "red", size = 1) +
-  geom_abline(intercept = avg_height, slope = 0, color = "darkgreen", size = 1) +
+  geom_abline(intercept = y_bar, slope = 0, color = "darkgreen", size = 1) +
   xlim(63.5, 72.5) + 
   ylim(63.5, 72.5) +
   coord_equal(ratio = 1)
