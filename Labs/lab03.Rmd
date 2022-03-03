@@ -130,10 +130,10 @@ In class we spoke about error due to ignorance, misspecification error and estim
 ```{r}
 beta_0 = 3
 beta_1 = -2
-beta = c(beta_0, beta_1)
+ns = c(10,100,1000)
 
-ns = #TO-DO
-errors = array(NA, length(ns))
+error_in_beta = array(NA, length(ns))
+
 for (i in 1 : length(ns)) {
   n = ns[i]
   x = runif(n)
@@ -141,10 +141,11 @@ for (i in 1 : length(ns)) {
   epsilon = rnorm(n, mean = 0, sd = 0.33)
   y = h_star_x + epsilon
   
-  #TO-DO
-  errors[i] = sum((beta - b)^2)
+  mod = my_simple_ols(x,y)
+  
+  error_in_beta[i] = (mod$b_0-beta_0)^2+(mod$b_1-beta_1)^2
 }
-errors
+rbind(ns, error_in_beta)
 ```
 
 
@@ -277,14 +278,42 @@ Write a function `my_ols` that takes in `X`, a matrix with with p columns repres
 
 ```{r}
 my_ols = function(X, y){
-  #TO-DO
+  n = nrow(X)
+  p = ncol(X)
+  X = cbind(1,X)
+  Xt = t(X)
+  XtX = Xt%*%X
+  XtXinv = solve(XtX)
+  b = XtXinv%*%Xt%*%y
+  y_hat = X%*%b
+  e = y-y_hat
+  df = p+1
+  SSE = sum(e^2)
+  SST = var(y)*(n-1)
+  MSE = SSE/(n-(df))
+  RMSE = sqrt(MSE)
+  Rsq = 1-(SSE/SST)
+  
+  ols = list()
+  ols$b = b
+  ols$y_hat = y_hat
+  ols$e = e
+  ols$df = df
+  ols$SSE = SSE
+  ols$SST = SST
+  ols$MSE = MSE
+  ols$RMSE = RMSE
+  ols$Rsq = Rsq
+  ols
 }
 ```
 
 Verify that the OLS coefficients for the `Type` of cars in the cars dataset gives you the same results as we did in class (i.e. the ybar's within group). 
 
 ```{r}
-#TO-DO
+X = model.matrix(~Type,MASS::Cars93)[,-1]
+y = MASS::Cars93$Price
+my_ols(X,y)
 ```
 
 
@@ -292,8 +321,16 @@ Create a prediction method `g` that takes in a vector `x_star` and the dataset D
 
 ```{r}
 g = function(x_star, X, y){
-  #TO-DO
+  X = cbind(1,X)
+  Xt = t(X)
+  XtX = Xt%*%X
+  XtXinv = solve(XtX)
+  b = XtXinv%*%Xt%*%y
+  y_hat = X%*%b
+  c(1,x_star)%*%b
+  
 }
+g(X[7, , drop = FALSE],X,y)
 ```
 
 
