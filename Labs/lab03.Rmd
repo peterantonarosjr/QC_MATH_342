@@ -2,7 +2,7 @@
 title: "Lab 3"
 author: "Peter Antonaros"
 output: pdf_document
-date: 
+date: 3/6/22 11:59pm
 ---
 
 ## Regression via OLS with one feature
@@ -105,34 +105,39 @@ expect_equal(my_simple_ols_mod$mse, anova(lm_mod)['Residuals', 'Mean Sq'] , tol 
 Create the $X$ matrix for this data example. Make sure it has the correct dimension.
 
 ```{r}
-
+xMatrix = as.matrix(cbind(1,x))
 ```
 
 Use the `model.matrix` function to compute the matrix `X` and verify it is the same as your manual construction.
 
 ```{r}
-model.matrix(~x)
-?model.matrix
+xData = data.frame(x)
+dim(model.matrix(~ x, xData))
+dim(xMatrix)
 ```
 
 Create a prediction method `g` that takes in a vector `x_star` and `my_simple_ols_obj`, an object of type `my_simple_ols_obj` and predicts y values for each entry in `x_star`. 
 
 ```{r}
 g = function(my_simple_ols_obj, x_star){
-  #TO-DO
+  
+  yHat = my_simple_ols_obj$b_0*(1) + my_simple_ols_obj$b_1*(x_star)
 }
+
 ```
 
 Use this function to verify that when predicting for the average x, you get the average y.
 
 ```{r}
-expect_equal(g(my_simple_ols_obj, mean(x)), mean(y))
+#Sometimes I've gotten some weird rounding errors like 1.99-19.5 = -17.51 != -17.5, but nevertheless it almost always returns an equal value for predicting average(x) -> average(y)
+expect_equal(g(my_simple_ols_mod, mean(x)), mean(y))
 ```
 
 
 In class we spoke about error due to ignorance, misspecification error and estimation error. Show that as n grows, estimation error shrinks. Let us define an error metric that is the difference between b_0 and b_1 and beta_0 and beta_1. How about ||b - beta||^2 where the quantities are now the vectors of size two. Show as n increases, this shrinks. 
 
 ```{r}
+#Try changing the end range of ns to see the estimation error shrink
 beta_0 = 3
 beta_1 = -2
 ns = c(10,100,1000)
@@ -236,15 +241,17 @@ TO-DO: Children of short parents became ... on average and children of tall pare
 
 Why did Galton call it "Regression towards mediocrity in hereditary stature" which was later shortened to "regression to the mean"?
 
-TO-DO
+Galton called it "Regression towards the mean" to imply that shorter than average parents will have children who are slightly taller -> gravitating towards the mean  AND taller than average parents will have children who are slightly shorter -> gravitating towards the mean
 
 Why should this effect be real?
 
-TO-DO
+This effect should be real because much taller and much shorter than average humans are anomalies.  Thus they still carry the genetic code of a "normal height" human being and so their children are more likely to take on these genes rather than the abnormal ones.  This is often times shown using Punnet Squares, and that there is a greater probabilty that children will inherit the "normal height" genes.
 
 You now have unlocked the mystery. Why is it that when modeling with y continuous, everyone calls it "regression"? Write a better, more descriptive and appropriate name for building predictive models with y continuous.
 
-TO-DO
+As we saw above we saw a regression towards the mean...in the context of linear regression we can say, 
+
+We are attempting to find a line that best 
 
 You can now clear the workspace.
 
@@ -255,14 +262,17 @@ rm(list = ls())
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 50\% and RMSE approximately 1.
 
 ```{r}
-x = 
-y = 
+#NOT DONE
+x = c(rep(c(1),10),rep(c(0),5))
+y = c(rep(c(1),5),rep(c(0),10))
 Xy = data.frame(x = x, y = y)
+my_simple_ols(x,y)
 ```
 
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 0\% but x, y are clearly associated.
 
 ```{r}
+#Here the R^2 value is 0, but clearly x associates to y through a parabolic function.  This makes sense the R^2 would be zero
 x = (-10:10)
 y = x^2
 Xy = data.frame(x = x, y = y)
