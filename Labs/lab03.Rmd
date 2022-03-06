@@ -179,7 +179,6 @@ pacman::p_load(skimr)
 skim(Galton)
 ```
 
-TO-DO
 
 Find the average height (include both parents and children in this computation).
 
@@ -202,23 +201,34 @@ Run a linear model attempting to explain the childrens' height using the parents
 
 ```{r}
 galtonModel = lm(Galton$child~Galton$parent)
+galtonModel$coefficients[1]
+galtonModel$coefficients[2]
+summary(galtonModel)
 ```
 
 Interpret all four quantities: b_0, b_1, RMSE and R^2. Use the correct units of these metrics in your answer.
 
-TO-DO
+b_0 = 23.9415 -> Given 2 parents who are 0 inches, their child will be about 23.9415 inches
+
+b_1 = 0.6464 -> As a parent's height increases, their children's height also increases, but at a lesser rate. For every increase of 1 inch in parent's height there is a .6464 increase in a child's height.
+
+RMSE = 2.239 -> There is about a +/- 4.478 inch confidence interval(~2RMSE) for 95% of our data. 
+
+R^2 = 0.2105 -> About 21% of the variance is explained. This makes sense given the nature of the data and how it essentially falls into bins. For this particular model I wouldn't regard it as that important
 
 How good is this model? How well does it predict? Discuss.
 
-TO-DO
+The model is an "okay" model, and I think its most redeeming quality is to demonstrate this regression towards the mean.  Given our RMSE value being higher than the null model doesn't necessarily make it bad, because our R^2 value is low.  I would also imagine having data that is not in these height bins would drastically improve the model since there would be a better distribution of points.
 
 It is reasonable to assume that parents and their children have the same height? Explain why this is reasonable using basic biology and common sense.
 
-TO-DO
+Basic biology and common sense would say given two parents with some height, it makes sense their child would be the same height since that child is made of the same "stuff" as the parent.
 
 If they were to have the same height and any differences were just random noise with expectation 0, what would the values of beta_0 and beta_1 be?
 
-TO-DO
+b_0 would be 0 -> 0 height parent = 0 height child
+
+b_1 would be 1 -> 1:1 correspondence of parent to child height
 
 Let's plot (a) the data in D as black dots, (b) your least squares line defined by b_0 and b_1 in blue, (c) the theoretical line beta_0 and beta_1 if the parent-child height equality held in red and (d) the mean height in green.
 
@@ -235,17 +245,17 @@ ggplot(Galton, aes(x = parent, y = child)) +
   coord_equal(ratio = 1)
 ```
 
-Fill in the following sentence: 
+Fill in the following sentence (_____): 
 
-TO-DO: Children of short parents became ... on average and children of tall parents became ... on average.
+TO-DO: Children of short parents became (taller) on average and children of tall parents became (shorter) on average.
 
 Why did Galton call it "Regression towards mediocrity in hereditary stature" which was later shortened to "regression to the mean"?
 
-Galton called it "Regression towards the mean" to imply that shorter than average parents will have children who are slightly taller -> gravitating towards the mean  AND taller than average parents will have children who are slightly shorter -> gravitating towards the mean
+Galton called it "Regression towards the mean" to imply that shorter than average parents will have children who are slightly taller -> gravitating towards the mean  AND taller than average parents will have children who are slightly shorter -> gravitating towards the mean. In the long run heights will remain at the mean.
 
 Why should this effect be real?
 
-This effect should be real because much taller and much shorter than average humans are anomalies.  Thus they still carry the genetic code of a "normal height" human being and so their children are more likely to take on these genes rather than the abnormal ones.  This is often times shown using Punnet Squares, and that there is a greater probabilty that children will inherit the "normal height" genes.
+This effect should be real because much taller and much shorter than average humans are anomalies.  Thus they still carry the genetic code of a "normal height" human being and so their children are more likely to take on these genes rather than the abnormal ones.  This is often times shown using Punnet Squares, and that there is a greater probability that children will inherit the "normal height" genes.
 
 You now have unlocked the mystery. Why is it that when modeling with y continuous, everyone calls it "regression"? Write a better, more descriptive and appropriate name for building predictive models with y continuous.
 
@@ -319,7 +329,6 @@ my_ols = function(X, y){
   ols$MSE = MSE
   ols$RMSE = RMSE
   ols$Rsq = Rsq
-  ols
 }
 ```
 
