@@ -272,11 +272,14 @@ rm(list = ls())
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 50\% and RMSE approximately 1.
 
 ```{r}
-#NOT DONE
 x = c(rep(c(1),10),rep(c(0),5))
-y = c(rep(c(1),5),rep(c(0),10))
+
+y = c(rep(c(20),5),rep(c(0),10))
+
 Xy = data.frame(x = x, y = y)
 my_simple_ols(x,y)
+x
+y
 ```
 
 Create a dataset D which we call `Xy` such that the linear model has R^2 about 0\% but x, y are clearly associated.
