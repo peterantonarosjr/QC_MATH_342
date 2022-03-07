@@ -259,9 +259,14 @@ This effect should be real because much taller and much shorter than average hum
 
 You now have unlocked the mystery. Why is it that when modeling with y continuous, everyone calls it "regression"? Write a better, more descriptive and appropriate name for building predictive models with y continuous.
 
-As we saw above we saw a regression towards the mean...in the context of linear regression we can say, 
+As we saw above Galton used regression in the sense that his line of best fit regressed towards the mean of the data.  Now that definition has evolved and is commonly used in ML today.
 
-We are attempting to find a line that best 
+A better/more descriptive name for building predictive models in this way with a continuous y variable would be...
+
+Linear Minimization of In Sample Error (LMISE)
+
+I feel that this fits better since it clearly describes our objective and how we are doing so. We are using some linear line to minimize our in sample error with the hope of being able to predict for out of sample values.
+
 
 You can now clear the workspace.
 
