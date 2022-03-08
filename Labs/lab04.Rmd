@@ -73,7 +73,7 @@ Compute SST, SSR and SSE and R^2 and then show that SST = SSR + SSE.
 ```{r}
 yBar = mean(y)
 SST = sum((y-yBar)^2)
-SSR = sum((y-yHat)^2)
+SSR = sum((yHat-yBar)^2)
 SSE = sum((eVec)^2)
 r_Square = SSR/SST
 expect_equal(SST,SSR+SSE)
@@ -82,7 +82,18 @@ expect_equal(SST,SSR+SSE)
 Find the angle theta between y - ybar 1 and yhat - ybar 1 and then verify that its cosine squared is the same as the R^2 from the previous problem.
 
 ```{r}
-#TO-DO
+vecU = y-yBar
+vecV = yHat - yBar
+
+norm = function(d){
+  
+  sqrt(sum(d^2))
+
+}
+
+theta = acos(norm(t(vecU)%*%vecV)/(norm(vecU)*norm(vecV)))
+theta
+cos(theta^2)
 ```
 
 Project the y vector onto each column of the X matrix and test if the sum of these projections is the same as yhat.
