@@ -1,6 +1,6 @@
 ---
 title: "Lab 4"
-author: "Your Name Here"
+author: "Peter Antonaros"
 output: pdf_document
 date: 
 ---
@@ -85,9 +85,13 @@ Find the angle theta between y - ybar 1 and yhat - ybar 1 and then verify that i
 vecU = y-yBar
 vecV = yHat - yBar
 
+normSq = function(d){
+  sum(d^2)
+  
+}
 norm = function(d){
   
-  sqrt(sum(d^2))
+  sqrt(normSq(d))
 
 }
 
@@ -99,55 +103,90 @@ cos(theta^2)
 Project the y vector onto each column of the X matrix and test if the sum of these projections is the same as yhat.
 
 ```{r}
-#TO-DO
+yHatPrime = rep(0,length(yHat))
+for(j in 1:ncol(X)){
+  yHatPrime = yHatPrime + (X[,j]%*%t(X[,j])/normSq(X[,j]))%*%y
+  
+}
+head(yHat)
+head(yHatPrime)
 ```
 
 Construct the design matrix without an intercept, X, without using `model.matrix`.
 
 ```{r}
-#TO-DO
+X = cbind(as.numeric(iris$Species=="virginica"),as.numeric(iris$Species=="setosa"),as.numeric(iris$Species=="versicolor"))
+colSums(X)
+
 ```
 
 Find the OLS estimates using this design matrix. It should be the sample averages of the petal lengths within species.
 
 ```{r}
-#TO-DO
+bVec = solve(t(X)%*%X)%*%t(X)%*%y
+
 ```
 
 Verify the hat matrix constructed from this design matrix is the same as the hat matrix constructed from the design matrix with the intercept. (Fact: orthogonal projection matrices are unique).
 
 ```{r}
-#TO-DO
+H_prime = X%*%solve(t(X)%*%X)%*%t(X)
+expect_equal(H_prime,H)
 ```
 
 Project the y vector onto each column of the X matrix and test if the sum of these projections is the same as yhat.
 
 ```{r}
-#TO-DO
+yHatPrime = rep(0,length(yHat))
+for(j in 1:ncol(X)){
+  yHatPrime = yHatPrime + (X[,j]%*%t(X[,j])/normSq(X[,j]))%*%y
+  
+}
+head(yHat)
+head(yHatPrime)
 ```
 
 Convert this design matrix into Q, an orthonormal matrix.
 
 ```{r}
-#TO-DO
+v1 = X[,1]
+v2 = X[,2] - (v1%*%t(v1)/normSq(v1))%*%X[,2]
+v3 = X[,3] - (v1%*%t(v1)/normSq(v1))%*%X[,3] - (v2%*%t(v2)/normSq(v2))%*%X[,3]
+  
+q1 = v1/norm(v1)
+q2 = v2/norm(v2)
+q3 = v3/norm(v3)
+  
+Q = cbind(q1,q2,q3)
 ```
 
 Project the y vector onto each column of the Q matrix and test if the sum of these projections is the same as yhat.
 
 ```{r}
-#TO-DO
+yHatPrime = rep(0,length(yHat))
+for(j in 1:ncol(Q)){
+  yHatPrime = yHatPrime + (Q[,j]%*%t(Q[,j])/normSq(Q[,j]))%*%y
+  
+}
+head(yHat)
+head(yHatPrime)
 ```
 
 Find the p=3 linear OLS estimates if Q is used as the design matrix using the `lm` method. Is the OLS solution the same as the OLS solution for X?
 
 ```{r}
-#TO-DO
+mod1 = lm(y~0+.,data.frame(X))
+mod2 = lm(y~0+.,data.frame(Q))
+coef(mod1)
+coef(mod2)
+
 ```
 
 Use the predict function and ensure that the predicted values are the same for both linear models: the one created with X  as its design matrix and the one created with Q as its design matrix.
 
 ```{r}
-#TO-DO
+
+cbind(mod1$fitted.values,mod2$fitted.values)
 ```
 
 
