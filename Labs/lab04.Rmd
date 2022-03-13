@@ -269,23 +269,46 @@ Create a 2x2 matrix with the first column 1's and the next column iid normals. F
 
 ```{r}
 n = 100
-
 X = matrix(rnorm(2 * n), ncol = 2)
-acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi
+ans = acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi
+abs(90-ans)
 ```
 
 Repeat this exercise `Nsim = 1e5` times and report the average absolute angle.
 
 ```{r}
-#TO-DO
+Nsim = 1e5
+
+angles = array(NA,Nsim)
+
+for(i in 1:Nsim){
+  angles[i] = abs(90-(acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi))
+  
+}
+
+mean(angles)
 ```
 
 Create a n x 2 matrix with the first column 1's and the next column iid normals. Find the absolute value of the angle (in degrees, not radians) between the two columns. For n = 10, 50, 100, 200, 500, 1000, report the average absolute angle over `Nsim = 1e5` simulations.
 
 ```{r}
-#TO-DO
+n_vals = c(10, 50, 100, 200, 500, 1000)
+
+angles = matrix(NA, nrow = Nsim, ncol=length(n_vals))
+
+for(i in 1:length(n_vals)){
+  
+  for(n_val in 1:Nsim){
+    
+    X = matrix(rnorm(2 * n_vals[i]), ncol = 2)
+    angles[n_val,i] = abs(90-(acos(t(X[,1]) %*% X[,2] / sqrt(sum(X[, 1]^2) * sum(X[, 2]^2))) * 180 / pi))
+  }
+  
+}
+
+colMeans(angles)
 ```
 
 What is this absolute angle difference from 90 degrees converging to? Why does this make sense?
 
-#TO-DO
+The absolute difference is converging to zero which makes sense since the directions are orthogonal.
