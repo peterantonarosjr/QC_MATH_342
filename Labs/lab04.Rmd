@@ -248,7 +248,7 @@ for(model in 1:nrow(olsEstimates)){
   e = y_hat-y_bar
   
   SSR = sum(e^2)
-  Rsq = SSR /SST
+  Rsq = SSR / SST
   r_SquareVec[model] = Rsq
   
 }
@@ -257,9 +257,13 @@ r_SquareVec
 
 ```
 
+```{r}
+#Shows the increase (monotonic) in r^2 of each of the models
+plot(r_SquareVec, xlab="Model #'s", ylab = "R^2")
+```
 Is R^2 monotonically increasing? Why?
 
-#TO-DO
+Yes the R^2 in monotonically increasing because our models are using more features every row.  This means that as we use mroe features the variance in predictions will also increase. Thus since y_hat variance is increasing it is "explaining" more of the y_response variance -> R^2 goes up.
 
 Create a 2x2 matrix with the first column 1's and the next column iid normals. Find the absolute value of the angle (in degrees, not radians) between the two columns in absolute difference from 90 degrees.
 
