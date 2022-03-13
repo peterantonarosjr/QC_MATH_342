@@ -73,7 +73,7 @@ Compute SST, SSR and SSE and R^2 and then show that SST = SSR + SSE.
 ```{r}
 yBar = mean(y)
 SST = sum((y-yBar)^2)
-SSR = sum((yHat-yBar)^2)
+SSR = sum((yHat-yBar)^2)library("tidyverse")
 SSE = sum((eVec)^2)
 r_Square = SSR/SST
 expect_equal(SST,SSR+SSE)
@@ -117,14 +117,14 @@ Construct the design matrix without an intercept, X, without using `model.matrix
 ```{r}
 X = cbind(as.numeric(iris$Species=="virginica"),as.numeric(iris$Species=="setosa"),as.numeric(iris$Species=="versicolor"))
 colSums(X)
-
+X
 ```
 
 Find the OLS estimates using this design matrix. It should be the sample averages of the petal lengths within species.
 
 ```{r}
 bVec = solve(t(X)%*%X)%*%t(X)%*%y
-
+bVec
 ```
 
 Verify the hat matrix constructed from this design matrix is the same as the hat matrix constructed from the design matrix with the intercept. (Fact: orthogonal projection matrices are unique).
@@ -193,17 +193,68 @@ cbind(mod1$fitted.values,mod2$fitted.values)
 Clear the workspace and load the boston housing data and extract X and y. The dimensions are n = 506 and p = 13. Create a matrix that is (p + 1) x (p + 1) full of NA's. Label the columns the same columns as X. Do not label the rows. For the first row, find the OLS estimate of the y regressed on the first column only and put that in the first entry. For the second row, find the OLS estimates of the y regressed on the first and second columns of X only and put them in the first and second entries. For the third row, find the OLS estimates of the y regressed on the first, second and third columns of X only and put them in the first, second and third entries, etc. For the last row, fill it with the full OLS estimates.
 
 ```{r}
-#TO-DO
+rm(list = ls())
 ```
+
+```{r}
+library(MASS)
+data(Boston)
+bDim = dim(Boston)
+head(Boston)
+
+```
+
+```{r}
+X = as.matrix(cbind(1,Boston[,1:13]))
+
+y = as.matrix(Boston[,14])
+#13 features and a 1s column so p+1 = 14
+pPlusOne = 14
+olsEstimates = matrix(NA, nrow = pPlusOne , ncol = pPlusOne, dimnames = list(NULL,labels(Boston)[[2]]))
+
+for(x_i in 1:ncol(X)){
+  
+  #Get a submatrix of all features up to the current
+  currFeatures = as.matrix(X[,1:x_i])
+  #Y regressed on the subset of columns
+  estimators = t(solve(t(currFeatures)%*%currFeatures)%*%t(currFeatures)%*%y)
+  
+  properEstimatorRow =matrix(c(estimators,rep(0,ncol(X)-x_i)))
+  
+  #Append as a row of ols estimates
+  olsEstimates[x_i,] = t(properEstimatorRow)
+}
+
+olsEstimates
+```
+
 
 Why are the estimates changing from row to row as you add in more predictors?
 
-#TO-DO
+The estimates are changing because we are factoring in more features(columns) to the OLS estimate. Intuitively this means our OLS estimates are becoming more and more accurate for each feature we add -> better fit to medv
+
+The consequence is its harder to interpret the results, but again better accuracy
 
 Create a vector of length p+1 and compute the R^2 values for each of the above models. 
 
 ```{r}
-#TO-DO
+r_SquareVec = c(rep(NA,14))
+y_bar = mean(y)
+SST = sum((y-y_bar)^2)
+
+for(model in 1:nrow(olsEstimates)){
+  
+  y_hat = X%*%as.matrix(olsEstimates[model,])
+  e = y_hat-y_bar
+  
+  SSR = sum(e^2)
+  Rsq = SSR /SST
+  r_SquareVec[model] = Rsq
+  
+}
+
+r_SquareVec
+
 ```
 
 Is R^2 monotonically increasing? Why?
