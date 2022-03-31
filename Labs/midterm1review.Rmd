@@ -141,26 +141,36 @@ Convert X into V where V has the same column space as X but has orthogonal colum
 ```{r}
 V = matrix(NA, nrow = n, ncol = p_plus_one)
 V[ , 1] = X[ , 1]
-#TO-DO
+for(j in 2:p_plus_one){
+  V[, j] = X[,j]
+  
+  for(k in 1:(j-1)){
+    V[,j] = V[,j] - orthogonal_projection(X[,j],V[,k])$a_parallel
+    
+  }
+}
+
 ```
 
 Convert V into Q whose columns are the same except normalized. This is the Gram-Schmidt orthogonalization algorithm (part B).
 
 ```{r}
 Q = matrix(NA, nrow = n, ncol = p_plus_one)
-#TO-DO
+for( j in 1:ncol(V)){
+  Q[,j] = V[,j]/sqrt(sum(V[,j]^2))
+}
 ```
 
 Verify Q^T Q is I_{p+1} i.e. Q is an orthonormal matrix.
 
 ```{r}
-#TO-DO
+t(Q)%*%Q
 ```
 
 Is your Q the same as what results from R's built-in QR-decomposition function?
 
 ```{r}
-Q_from_Rs_builtin = #TO-DO
+Q_from_Rs_builtin = qr.Q(qr(X))
 ```
  
 Is this expected? Why did this happen?
@@ -170,8 +180,8 @@ Is this expected? Why did this happen?
 Project y onto colsp[Q] and verify it is the same as the OLS fit. You may have to use the function `unname` to compare the vectors since they the entries will likely have different names.
 
 ```{r}
-#TO-DO
-expect
+y_hatQ = Q%*%t(Q)%*%y
+expect_equal(unname(c(yhat)),c(y_hatQ))
 ```
 
 Project y onto colsp[Q] one by one and verify it sums to be the projection onto the whole space.
@@ -186,7 +196,10 @@ Split the Boston Housing Data into a training set and a test set where the train
 K = 5
 n_test = round(n * 1 / K)
 n_train = n - n_test
-#TO-DO
+test_indices = sample(1:n, n_test,)
+train_indices = setdiff(1:n, test_indices)
+# sort(c(test_indices,train_indices))
+
 ```
 
 Fit an OLS model. Find the s_e in sample and out of sample. Which one is greater? Note: we are now using s_e and not RMSE since RMSE has the n-(p + 1) in the denominator not n-1 which attempts to de-bias the error estimate by inflating the estimate when overfitting in high p. Again, we're just using `sd(e)`, the sample standard deviation of the residuals.
