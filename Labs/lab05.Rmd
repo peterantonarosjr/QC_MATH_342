@@ -24,7 +24,6 @@ Verify this using code:
 
 ```{r}
 ncol(diamonds)
-#diamonds
 ```
 
 Would it make sense to use polynomial expansions for the variables cut, color and clarity? Why or why not?
@@ -41,7 +40,8 @@ In order to ensure there is no time trend in the data, randomize the order of th
 length = dim(diamonds)[1]
 randObservations = sample(nrow(diamonds), length)
 diamonds = diamonds[randObservations,]
-diamonds
+ggplot(diamonds, aes(x = carat, y = price)) + 
+  geom_point()
 ```
 
 Let's also concentrate only on diamonds with <= 2 carats to avoid the issue we saw with the maximum. So subset the dataset. Create a variable n equal to the number of remaining rows as this will be useful for later. Then plot it.
@@ -49,7 +49,6 @@ Let's also concentrate only on diamonds with <= 2 carats to avoid the issue we s
 ```{r}
 caratSubset = diamonds[which(diamonds$carat<=2),]
 n = nrow(diamonds) - nrow(caratSubset)
-#max(caratSubset$carat) # Check the max carat size to ensure we are selecting right thing
 ggplot(caratSubset, aes(x = carat, y = price)) + 
   geom_point()
 
@@ -71,20 +70,21 @@ Create a model of price ~ clarity and gauge its in-sample performance
 x = caratSubset$clarity
 y = caratSubset$price
 priceClarity = lm(y~x)
-standardError = sd(priceClarity$residuals)
-standardError
+se_0 = sd(priceClarity$residuals)
+se_0
 ```
 
 Why is the model price ~ carat substantially more accurate than price ~ clarity?
 
 The model price ~ carat is substantially more accurate because its simply a more "important" feature in our phenomena. Clarity is also a categorical variable, 
-which means fitting a line to this will most likely have more error than fitting to a continuous variable such as carat. (I believe its continous, or maybe very granular discrete I can't tell nor do I know that much about diamonds)
+which means fitting a line to this will most likely have more error than fitting to a continuous variable such as carat. (I believe its continuous, or maybe very granular discrete I can't tell nor do I know that much about diamonds)
 
 Create a new transformed feature ln_carat and plot it vs price.
 
 ```{r}
-ln_carat = log(diamonds$carat)
-ggplot(diamonds, aes(x = ln_carat, y = price)) + 
+caratSubset = transform(caratSubset, ln_carat = log(carat))
+#ln_carat = log(caratSubset$carat)
+ggplot(caratSubset, aes(x = ln_carat, y = price)) + 
   geom_point()
 ```
 
@@ -95,8 +95,8 @@ It depends what sort of model we are fitting, if we are talking about a linear o
 Verify this by comparing R^2 and RMSE of the two models:
 
 ```{r}
-mod1 = lm(diamonds$price ~ diamonds$carat)
-mod2 = lm(diamonds$price ~ ln_carat)
+mod1 = lm(caratSubset$price ~ caratSubset$carat)
+mod2 = lm(caratSubset$price ~ caratSubset$ln_carat)
 mod1RMSE = sqrt(mean(mod1$residuals^2))
 mod1R_SQ = summary(mod1)$r.squared
 mod2RMSE = sqrt(mean(mod2$residuals^2))
@@ -111,36 +111,38 @@ Create a new transformed feature ln_price and plot its estimated density:
 
 
 ```{r}
-ln_price = log(diamonds$price)
-ggplot(diamonds) + geom_histogram(aes(x = ln_price), binwidth = 0.01)
+caratSubset = transform(caratSubset, ln_price = log(price))
+ggplot(caratSubset) + geom_histogram(aes(x = ln_price), binwidth = 0.01)
 ```
 
 
 Now plot it vs carat.
 
 ```{r}
-ggplot(diamonds, aes(x = carat, y = ln_price)) + 
+ggplot(caratSubset, aes(x = carat, y = ln_price)) + 
   geom_point()
 ```
 
 Would ln_price ~ carat be a better fitting model than price ~ carat? Why or why not?
 
-#TO-DO
+No it would not be a better fit model 
 
 Verify this by computing s_e of this new model. Make sure these metrics can be compared apples-to-apples with the previous.
 
 ```{r}
-#TO-DO
+logPricePerCarat = lm(caratSubset$ln_price ~ caratSubset$carat)
+se = sd(logPricePerCarat$residuals) #This is in terms of our new log scaling
+se
 ```
 
 We just compared in-sample statistics to draw a conclusion on which model has better performance. But in-sample statistics can lie! Why is what we did valid?
 
-#TO-DO
+What we did is valid because we are merely evaluating the fit of the line without over-fitting features. We are comparing two models who are using the same feature against the price response and transforming error so that they are both in the same units. We are not saying who will perform better on out of sample data, but what is currently a better fit to the data.
 
 Plot ln_price vs ln_carat.
 
 ```{r}
-ggplot(diamonds, aes(x = ln_carat, y = ln_price)) + 
+ggplot(caratSubset, aes(x = ln_carat, y = ln_price)) + 
   geom_point()
 ```
 
@@ -149,28 +151,32 @@ Would ln_price ~ ln_carat be the best fitting model than the previous three we c
 Verify this by computing s_e of this new model. Make sure these metrics can be compared apples-to-apples with the previous.
 
 ```{r}
-#TO-DO
+logModel = lm(caratSubset$ln_price ~ caratSubset$ln_carat)
 ```
 
 Compute b, the OLS slope coefficients for this new model of ln_price ~ ln_carat.
 
 ```{r}
-#Model A
-#TO-DO
+logModel$coefficients
 ```
 
 Interpret b_1, the estimated slope of ln_carat.
 
-#TO-DO
+For every 1 unit(log units) change for carot their is ~69% change inthe price of a diamond
 
 Interpret b_0, the estimated intercept.
 
-#TO-DO
+With a 0 caraot diamond in log units
 
 Create other features ln_x, ln_y, ln_z, ln_depth, ln_table.
 
 ```{r}
-#TO-DO
+caratSubset = transform(caratSubset, ln_x = log(caratSubset$x))
+caratSubset = transform(caratSubset, ln_y = log(caratSubset$y))
+caratSubset = transform(caratSubset, ln_z = log(caratSubset$z))
+caratSubset = transform(caratSubset, ln_depth = log(caratSubset$depth))
+caratSubset = transform(caratSubset, ln_table = log(caratSubset$table))
+
 ```
 
 From now on, we will be modeling ln_price (not raw price) as the prediction target. 
@@ -178,9 +184,9 @@ From now on, we will be modeling ln_price (not raw price) as the prediction targ
 Create a model (B) of ln_price on ln_carat interacted with clarity and compare its performance with the model (A) ln_price ~ ln_carat.
 
 ```{r}
-ggplot(diamonds, aes(x=ln_carat, y= ln_price, color = clarity)+geom_point())
-moda = lm(ln_price ~ ln_carat, diamonds)
-modb = lm(ln_price ~ ln_carat * clarity, diamonds)
+ggplot(caratSubset, aes(x = ln_carat, y = ln_price, color = clarity)) + geom_point()
+moda = lm(ln_price ~ ln_carat, caratSubset)
+modb = lm(ln_price ~ ln_carat * clarity, caratSubset)
 summary(modb)$sigma
 ```
 
@@ -191,20 +197,20 @@ Which model does better? Why?
 Create a model of (C) ln_price on ln_carat interacted with every categorical feature (clarity, cut and color) and compare its performance with model (B)
 
 ```{r}
-modc = lm(ln_price ~ ln_carat * (clarity + cut  + color), diamonds)
+modc = lm(ln_price ~ (ln_carat) * (clarity + cut  + color), caratSubset)
 summary(modc)$sigma
+summary(modb)$sigma
 ```
 
 Which model does better? Why?
 
-#TO-DO
+Our Model C does better since it is interacting between features clarity, cut and color. We are 'capturing the fit to the data' better because we are considering the differential slopes among more relevant features
 
 Create a model (D) of ln_price on every continuous feature (logs of carat, x, y, z, depth, table) interacted with every categorical feature (clarity, cut and color) and compare its performance with model (C).
 
 ```{r}
-diamonds  = diamonds[diamonds$x >0 & diamonds$z >0,]
-
-modd = lm(ln_price ~ (ln_carat + ln_x + ln_y + ln_z + ln_depth + ln_table) * (clarity + cut  + color), diamonds)
+caratSubset2  = caratSubset[which(caratSubset$x>0 & caratSubset$y>0 & caratSubset$z>0),]
+modd = lm(ln_price ~ (ln_carat + ln_x + ln_y + ln_z + ln_depth + ln_table) * (clarity + cut  + color), caratSubset2)
 summary(modd)$sigma
 ```
 
@@ -216,13 +222,13 @@ What is the p of this model D? Compute with code.
 
 ```{r}
 modd$rank
-ncol(model.matrix(~ (ln_carat + ln_x + ln_y + ln_z + ln_depth + ln_table) * (clarity + cut  + color), diamonds))
+ncol(model.matrix(~ (ln_carat + ln_x + ln_y + ln_z + ln_depth + ln_table) * (clarity + cut  + color), caratSubset2))
 ```
 
 Create model (E) which is the same as before except create include the raw features interacted with the categorical features and gauge the performance against (D).
 
 ```{r}
-mod_e = lm(ln_price ~ (carat + x + y + z + depth + table) * (clarity + cut  + color), diamonds)
+mod_e = lm(ln_price ~ (carat + x + y + z + depth + table) * (clarity + cut  + color), caratSubset2)
 summary(mod_e)$sigma
 ```
 
@@ -233,7 +239,7 @@ Which model does better? Why?
 Create model (F) which is the same as before except also include also third degree polynomials of the continuous features interacted with the categorical features and gauge performance against (E). By this time you're getting good with R's formula syntax!
 
 ```{r}
-modf = lm(ln_price ~ (ploy(carat,3) + poly(x,3) + plot(y,3) + polt(z,3) + polt(depth,3) + poly(table,3)) * (clarity + cut  + color), diamonds)
+modf = lm(ln_price ~ (poly(carat,3) + poly(x,3) + poly(y,3) + poly(z,3) + poly(depth,3) + poly(table,3)) * (clarity + cut  + color), caratSubset2)
 summary(modf)$sigma
 ```
 
@@ -251,33 +257,42 @@ We should probably assess oos performance now. Sample 2,000 diamonds and use the
 K = 10
 set.seed(1984)
 sampleNum = 2000
-D = diamonds[sample(1:nrow(diamonds),sampleNum)]
-Dtrain = D[1: ((1-1/k)*sampleNum),]
-Dtest = D-Dtrain #POSSIBLY WRONG
+splitIndex = nrow(D)*(1-1/K)
+D = caratSubset2[sample(1:nrow(caratSubset2), sampleNum), ] #Random Sample of actual full data set
+Dtrain = D[0:splitIndex,] #With K=10 we are selecting the first 90% of the random sample
+Dtest = D[(splitIndex+1):nrow(D),]#With K=10 we are selecting the last 10% of the random sample
 ```
 
 Compute in and out of sample performance for models A-F. Use s_e as the metric (standard error of the residuals). Create a list with keys A, B, ..., F to store these metrics. Remember the performances here will be worse than before since before you're using nearly 52,000 diamonds to build a model and now it's only 1,800! 
 
 ```{r}
-inSampleRMSE = list()
-outSampleRMSE = list()
+inSampleSE = list()
+outSampleSE = list()
 
 moda = lm(ln_price ~ ln_carat, Dtrain)
-inSampleRMSE[['A']] = summary(moda)$sigma
+inSampleSE[['A']] = sd(moda$residuals)
+inSampleSE[['B']] = sd(modb$residuals)
+inSampleSE[['C']] = sd(modc$residuals)
+inSampleSE[['D']] = sd(modd$residuals)
+inSampleSE[['E']] = sd(mod_e$residuals)
+inSampleSE[['F']] = sd(modf$residuals)
 
-#DO this for the rest of the models
+outSampleSE[['A']] = sd(Dtest$ln_price - predict(moda,Dtest))
+outSampleSE[['B']] = sd(Dtest$ln_price - predict(modb,Dtest))
+outSampleSE[['C']] = sd(Dtest$ln_price - predict(modc,Dtest))
+outSampleSE[['D']] = sd(Dtest$ln_price - predict(modd,Dtest))
+outSampleSE[['E']] = sd(Dtest$ln_price - predict(mod_e,Dtest))
+outSampleSE[['F']] = sd(Dtest$ln_price - predict(modf,Dtest))
 
-outSampleRMSE[['A']] = sd(Dtest$ln_price - predict(moda,Dtest))
+sd(priceClarity$residuals)
 
-#DO this for the rest of the models
-
-inSampleRMSE
-outSamnpleRMSE
+unlist(inSampleSE)
+unlist(outSampleSE)
 ```
 
 You computed oos metrics only on n_* = 200 diamonds. What problem(s) do you expect in these oos metrics?
 
-#TO-DO
+They're not that accurate since you are only testing on a small portion of the data. Professor Kapelner coined this "lucky" since we are not giving a true representation on testing all of the data without training on all of the data. This is where K-Fold comes in...
 
 To do the K-fold cross validation we need to get the splits right and crossing is hard. I've developed code for this already. Run this code.
 
