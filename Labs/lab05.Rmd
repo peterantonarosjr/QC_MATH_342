@@ -132,12 +132,12 @@ Verify this by computing s_e of this new model. Make sure these metrics can be c
 ```{r}
 logPricePerCarat = lm(caratSubset$ln_price ~ caratSubset$carat)
 se = sd(logPricePerCarat$residuals) #This is in terms of our new log scaling
-se
+exp(se) #Returns 1.397298 which indicates a +/- 39.7298% change in price when carat changes by 1
 ```
 
 We just compared in-sample statistics to draw a conclusion on which model has better performance. But in-sample statistics can lie! Why is what we did valid?
 
-What we did is valid because we are merely evaluating the fit of the line without over-fitting features. We are comparing two models who are using the same feature against the price response and transforming error so that they are both in the same units. We are not saying who will perform better on out of sample data, but what is currently a better fit to the data.
+What we did is valid because we are merely evaluating the fit of the line without over-fitting more features. We are comparing two models who are using the same feature against the price response and transforming error so that they are both in the same units. We are not saying who will perform better on out of sample data, but what is currently a better fit to the data.
 
 Plot ln_price vs ln_carat.
 
@@ -187,12 +187,13 @@ Create a model (B) of ln_price on ln_carat interacted with clarity and compare i
 ggplot(caratSubset, aes(x = ln_carat, y = ln_price, color = clarity)) + geom_point()
 moda = lm(ln_price ~ ln_carat, caratSubset)
 modb = lm(ln_price ~ ln_carat * clarity, caratSubset)
+summary(moda)$sigma
 summary(modb)$sigma
 ```
 
 Which model does better? Why?
 
-#TO-DO
+B Model does better. I would say this is the result of interacting the feature ln_carat with clarity as everything else in the model remains the same. We've explained more of the variance hence the reduction in RMSE through feature interaction (differential dependence between independent features)
 
 Create a model of (C) ln_price on ln_carat interacted with every categorical feature (clarity, cut and color) and compare its performance with model (B)
 
@@ -204,7 +205,7 @@ summary(modb)$sigma
 
 Which model does better? Why?
 
-Our Model C does better since it is interacting between features clarity, cut and color. We are 'capturing the fit to the data' better because we are considering the differential slopes among more relevant features
+Our Model C does better since it is interacting between features clarity, cut and color. We are 'capturing the fit to the data' better because we are considering the differential slopes among more relevant features. Interacting more features with each other is akin to adding more features without "actually" adding new features. We are squeezing out as much as we can from these relationships.
 
 Create a model (D) of ln_price on every continuous feature (logs of carat, x, y, z, depth, table) interacted with every categorical feature (clarity, cut and color) and compare its performance with model (C).
 
@@ -212,11 +213,12 @@ Create a model (D) of ln_price on every continuous feature (logs of carat, x, y,
 caratSubset2  = caratSubset[which(caratSubset$x>0 & caratSubset$y>0 & caratSubset$z>0),]
 modd = lm(ln_price ~ (ln_carat + ln_x + ln_y + ln_z + ln_depth + ln_table) * (clarity + cut  + color), caratSubset2)
 summary(modd)$sigma
+summary(modc)$sigma
 ```
 
 Which model does better? Why?
 
-#TO-DO
+Model D does bettor because now we are capturing the interactions between 6 features * 3 features vs 1 feature * 3 features as in Model C. 
 
 What is the p of this model D? Compute with code.
 
@@ -230,26 +232,29 @@ Create model (E) which is the same as before except create include the raw featu
 ```{r}
 mod_e = lm(ln_price ~ (carat + x + y + z + depth + table) * (clarity + cut  + color), caratSubset2)
 summary(mod_e)$sigma
+summary(modd)$sigma
 ```
 
 Which model does better? Why?
 
-#TO-DO
+Model E does better, but the returns are diminishing at this point. We are no longer using the log transformations, but now are using the raw features. This is more accurate in the 4th decimal place, so with hesitance I would say this is a slightly more accurate representation of the data.
 
 Create model (F) which is the same as before except also include also third degree polynomials of the continuous features interacted with the categorical features and gauge performance against (E). By this time you're getting good with R's formula syntax!
 
 ```{r}
 modf = lm(ln_price ~ (poly(carat,3) + poly(x,3) + poly(y,3) + poly(z,3) + poly(depth,3) + poly(table,3)) * (clarity + cut  + color), caratSubset2)
 summary(modf)$sigma
+summary(mod_e)$sigma
 ```
 
 Which model does better? Why?
 
-#TO-DO
+Model F does better, but at this point I am not sure at what cost. We can "play" this game forever and use higher and higher order polynomials. This is guaranteed to eventually lead to over fitting (if we aren't already) given the fact that its been proven "any continuous function can be nearly perfectly modeled by an nth order polynomial"
 
 Can you think of any other way to expand the candidate set curlyH? Discuss.
 
-#TO-DO
+A simple expansion of curlyH would be as we said in our previous answer to increase the order of the polynomial.
+Another way would be to use different transformations that are not linearly dependent on one another. For example, using Trigonometric transformations would expand curlyH to a new space. (Probably also wouldn't fit the data well so I wouldn't do this)
 
 We should probably assess oos performance now. Sample 2,000 diamonds and use these to create a training set of 1,800 random diamonds and a test set of 200 random diamonds. Define K and do this splitting:
 
