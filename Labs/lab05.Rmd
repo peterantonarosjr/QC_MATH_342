@@ -1,6 +1,6 @@
 ---
 title: "Lab 5"
-author: "Your Name Here"
+author: "Peter Antonaros"
 output: pdf_document
 ---
 
@@ -28,11 +28,11 @@ ncol(diamonds)
 
 Would it make sense to use polynomial expansions for the variables cut, color and clarity? Why or why not?
 
-#TO-DO
+No it would not makes sense to use polynomial expansions for these variables since they are categorical (nominal and ordinal). Regardless of whether or not they are nominal or ordinal the fact that they are categorical makes it so that a polynomial expansion on them will have massive amounts of error.
 
 Would it make sense to use log transformations for the variables cut, color and clarity? Why or why not?
 
-#TO-DO
+No because I am not sure how you would take the log of a non numerical value. You could somehow coerce the values to be numerics, but then it still wouldn't make much sense as its completely ruining the interpretability. At least with numerics and logs we can equate this to percentage change, but with non numerics it would equate to what is essentially nonsense. Plus even if we were to dummify, you cant take the log(0) and so it just becomes a bigger hassle than what its worth.
 
 In order to ensure there is no time trend in the data, randomize the order of the diamond observations in D:.
 
@@ -125,14 +125,23 @@ ggplot(caratSubset, aes(x = carat, y = ln_price)) +
 
 Would ln_price ~ carat be a better fitting model than price ~ carat? Why or why not?
 
-No it would not be a better fit model 
+No it would not be a better fit model because this relationship is going to have larger and larger residuals the farther out in carat we predict for.
 
 Verify this by computing s_e of this new model. Make sure these metrics can be compared apples-to-apples with the previous.
 
 ```{r}
 logPricePerCarat = lm(caratSubset$ln_price ~ caratSubset$carat)
-se = sd(logPricePerCarat$residuals) #This is in terms of our new log scaling
-exp(se) #Returns 1.397298 which indicates a +/- 39.7298% change in price when carat changes by 1
+logRMSE = (sqrt(mean(logPricePerCarat$residuals^2))) #This is in terms of our new log scaling & Returns 1.397298 which indicates a +/- 39.7298% change in price when carat changes by 1 (from the mean)
+#Now to convert to our original units
+logYhat = logPricePerCarat$fitted.values
+yHat = exp(logYhat)
+e = caratSubset$price - yHat
+sse = sum(e^2)
+sst = sum((caratSubset$price - mean(caratSubset$price))^2)
+logPricePerCaratRMSE = sqrt(sse/ (nrow(caratSubset)-2))#Now our log model rmse in standard units
+
+logPricePerCaratRMSE #RMSE for ln_price ~ carat
+mod1RMSE #RMSE for price ~ carat
 ```
 
 We just compared in-sample statistics to draw a conclusion on which model has better performance. But in-sample statistics can lie! Why is what we did valid?
@@ -303,9 +312,11 @@ To do the K-fold cross validation we need to get the splits right and crossing i
 
 ```{r}
 temp = rnorm(n)
-folds_vec = cut(temp, breaks = quantile(temp, seq(0, 1, length.out = K + 1)), include.lowest = TRUE, labels = FALSE)
+folds_vec = cut(temp, breaks = quantile(temp, seq(0, 1, length.out = K+1)), include.lowest = TRUE, labels = FALSE)
 head(folds_vec, 200)
+
 ```
+
 
 Comment on what it does and how to use it to do a K-fold CV:
 
@@ -314,8 +325,16 @@ Comment on what it does and how to use it to do a K-fold CV:
 Do the K-fold cross validation for model F and compute the overall s_e and s_s_e. 
 
 ```{r}
-kFold_se = 0
-kFold_sse = 0
+kFoldCrossValidate = function(dataset, foldVec){
+  fold_se_List = list()
+  fold_sse_list = list()
+  
+  
+  
+  c(mean(fold_se_List),mean(fold_sse_list))
+}
+
+kFoldCrossValidate(caratSubset, folds_vec)
 ```
 
 Does K-fold CV help reduce variance in the oos s_e? Discuss.
