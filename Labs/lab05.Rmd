@@ -264,7 +264,7 @@ set.seed(1984)
 sampleNum = 2000
 splitIndex = nrow(D)*(1-1/K)
 D = caratSubset2[sample(1:nrow(caratSubset2), sampleNum), ] #Random Sample of actual full data set
-Dtrain = D[0:splitIndex,] #With K=10 we are selecting the first 90% of the random sample
+Dtrain = D[1:splitIndex,] #With K=10 we are selecting the first 90% of the random sample
 Dtest = D[(splitIndex+1):nrow(D),]#With K=10 we are selecting the last 10% of the random sample
 ```
 
@@ -297,7 +297,7 @@ unlist(outSampleSE)
 
 You computed oos metrics only on n_* = 200 diamonds. What problem(s) do you expect in these oos metrics?
 
-They're not that accurate since you are only testing on a small portion of the data. Professor Kapelner coined this "lucky" since we are not giving a true representation on testing all of the data without training on all of the data. This is where K-Fold comes in...
+They're not that accurate since you are only testing on a small portion of the data. Professor Kapelner coined this "lucky" since we are not giving a true representation on testing all of the data without training on all of the data. This is where K-Fold comes in as it helps find a better average representation of how our oos metrics will do. Notice how every time we run this, a slightly different partition in D will result in different oos metrics. We want to avoid this!
 
 To do the K-fold cross validation we need to get the splits right and crossing is hard. I've developed code for this already. Run this code.
 
@@ -314,12 +314,13 @@ Comment on what it does and how to use it to do a K-fold CV:
 Do the K-fold cross validation for model F and compute the overall s_e and s_s_e. 
 
 ```{r}
-#TO-DO
+kFold_se = 0
+kFold_sse = 0
 ```
 
 Does K-fold CV help reduce variance in the oos s_e? Discuss.
 
-#TO-DO
+K-Fold helps reduce the variance in the dataset partitions which then gives you a more accurate representation of the oos metrics. When I say more accurate, the overall distribution of error for a particular K value is what's becoming less variate. This makes sense as rather than taking some random percentage split of the Dataset to test and validate on which can lead to instability in oos error, we are accounting for this with multiple splits all factoring into the final oos metric.
 
 Imagine using the entire rest of the dataset besides the 2,000 training observations divvied up into slices of 200. Measure the oos error for each slice on Model F in a vector s_e_s_F and compute the s_s_e_F and also plot it.
 
