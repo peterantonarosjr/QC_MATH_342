@@ -185,7 +185,6 @@ caratSubset = transform(caratSubset, ln_y = log(caratSubset$y))
 caratSubset = transform(caratSubset, ln_z = log(caratSubset$z))
 caratSubset = transform(caratSubset, ln_depth = log(caratSubset$depth))
 caratSubset = transform(caratSubset, ln_table = log(caratSubset$table))
-
 ```
 
 From now on, we will be modeling ln_price (not raw price) as the prediction target. 
@@ -311,30 +310,40 @@ They're not that accurate since you are only testing on a small portion of the d
 To do the K-fold cross validation we need to get the splits right and crossing is hard. I've developed code for this already. Run this code.
 
 ```{r}
+set.seed(2000)
 temp = rnorm(n)
 folds_vec = cut(temp, breaks = quantile(temp, seq(0, 1, length.out = K+1)), include.lowest = TRUE, labels = FALSE)
 head(folds_vec, 200)
-
 ```
+
 
 
 Comment on what it does and how to use it to do a K-fold CV:
 
-#TO-DO
+Working from the inside out...
+First we create a sequence from 1 to K+1, which in this case K=10 so the seq is from 1 to 11
+Then we run quantile() on a normal distribution feeding it probabilities equal to the generated sequence
+We call cut on the normal distribution temp and break it up at the given quantiles
+
 
 Do the K-fold cross validation for model F and compute the overall s_e and s_s_e. 
 
 ```{r}
-kFoldCrossValidate = function(dataset, foldVec){
-  fold_se_List = list()
-  fold_sse_list = list()
+oos_SE = array(NA, K) #Setup an initial array for errors
+yHat = array(NA, nrow(caratSubset2))
+for (k in 1 : K){
+  testIndex = which(folds_vec == k)
+  trainIndex = setdiff(1 : nrow(caratSubset2), testIndex)
   
+  modf = lm(ln_price ~ (poly(carat,3) + poly(x,3) + poly(y,3) + poly(z,3) + poly(depth,3) + poly(table,3)) * (clarity + cut  + color), caratSubset2[trainIndex,])
+  yHat[testIndex] = predict(modf, caratSubset2[testIndex,])
   
-  
-  c(mean(fold_se_List),mean(fold_sse_list))
+  oos_SE[k] = sd(caratSubset2[testIndex,]$ln_price - yHat[testIndex]) # Out of sample residuals
 }
 
-kFoldCrossValidate(caratSubset, folds_vec)
+oos_SE
+sd(oos_SE)
+mean(oos_SE)
 ```
 
 Does K-fold CV help reduce variance in the oos s_e? Discuss.
