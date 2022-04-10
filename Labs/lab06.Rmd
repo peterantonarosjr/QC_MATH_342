@@ -14,6 +14,7 @@ Load up the `GSSvocab` dataset in package `carData` as `X` and drop all observat
 library(ggplot2)
 pacman::p_load(carData)
 X = carData::GSSvocab
+X
 ```
 
 Briefly summarize the documentation on this dataset. What is the data type of each variable? What do you think is the response variable the collectors of this data had in mind?
@@ -23,13 +24,34 @@ Briefly summarize the documentation on this dataset. What is the data type of ea
 Create two different plots and identify the best-looking plot you can to examine the `age` variable. Save the best looking plot as an appropriately-named PDF.
 
 ```{r}
-#TO-DO
+ggplot(X, aes(x=age))+
+  geom_histogram(bins=50)
+
+
+#A nicer plot would be to plot this based ona guassian curve
+
+agePlot = ggplot(X, aes(x=age))+
+  geom_bar(kernel  = "guassian")
+
+agePlot
+##ggsave("ageVarPlot.pdf", agePlot)
+
 ```
 
 Create two different plots and identify the best looking plot you can to examine the `vocab` variable. Save the best looking plot as an appropriately-named PDF.
 
 ```{r}
-#TO-DO
+factor(X$vocab)
+ggplot(X, aes(x=vocab))+
+  geom_dotplot()
+
+#A better representation of the data
+vocabPlot = ggplot(X, aes(x=vocab))+
+  geom_bar()
+
+vocabPlot
+##ggsave("vocabPlot.pdf", vocabPlot)
+
 ```
 
 Create the best-looking plot you can to examine the `ageGroup` variable by `gender`. Does there appear to be an association? There are many ways to do this.
@@ -43,43 +65,70 @@ Create the best-looking plot you can to examine the `vocab` variable by `age`. D
 
 ```{r}
 X$vocab = factor(X$vocab)
-ggplot(X) +
-  geom_boxplot(aes(x = vocab, y = age))
+vocabAgePlot = ggplot(X) +
+  geom_boxplot(aes(x=vocab, y=age))
+
+vocabAgePlot
 ```
 
 Add an estimate of $f(x)$ using the smoothing geometry to the previous plot. Does there appear to be an association now?
 
 ```{r}
-#TO-DO
+# We are going to need a different plot for the smooth to work
+X$vocab = as.numeric(X$vocab)
+smoothAgeVocabPlot = ggplot(X, aes(x=age, y=vocab)) +
+  geom_smooth()
+
+smoothAgeVocabPlot
 ```
 
 Using the plot from the previous question, create the best looking plot overloading with variable `gender`. Does there appear to be an interaction of `gender` and `age`?
 
 ```{r}
-#TO-DO
+overloadAgeVocabPlot = ggplot(X, aes(x=age, y=vocab))+
+  geom_jitter(aes(col=gender))+
+  geom_smooth()
+
+overloadAgeVocabPlot
 ```
 
 
 Using the plot from the previous question, create the best looking plot overloading with variable `nativeBorn`. Does there appear to be an interaction of `nativeBorn` and `age`?
 
 ```{r}
-#TO-DO
+overloadAgeVocabPlot2 = ggplot(X, aes(x=age, y=vocab))+
+  geom_jitter(aes(col=nativeBorn))+
+  geom_smooth()
+
+overloadAgeVocabPlot2
 ```
 
 Create two different plots and identify the best-looking plot you can to examine the `vocab` variable by `educGroup`. Does there appear to be an association?
 
 ```{r}
-#TO-DO
+ggplot(X, aes(x=educGroup, y=vocab))+
+  geom_boxplot()
+
+#Using density plot for the cheat cheat would be much nicer
+
+densityEduVocabplot = ggplot(X, aes(x=vocab))+
+  geom_density(aes(fill=educGroup), adjust=1)
+densityEduVocabplot
 ```
 
 Using the best-looking plot from the previous question, create the best looking overloading with variable `gender`. Does there appear to be an interaction of `gender` and `educGroup`?
 
 ```{r}
-#TO-DO
+overloadgenderEducGroupPlot = ggplot(X, aes(x=educGroup,y=vocab))+
+  geom_boxplot(aes(col=gender))
+
+overloadgenderEducGroupPlot
 ```
 
 Using facets, examine the relationship between `vocab` and `ageGroup`. You can drop year level `(Other)`. Are we getting dumber?
 
 ```{r}
-#TO-DO
+ggplot(X, aes(x=vocab))+
+  geom_density(adjust=1)+
+  facet_grid(ageGroup~.)
 ```
