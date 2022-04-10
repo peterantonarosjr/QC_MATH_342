@@ -29,6 +29,8 @@ Vocab: Quantitative Discrete
 Age: Quantitative Continuous 
 Educ: Quantitative Continuous
 
+I think the response variable the person had in mind was most likely the vocab score. If we assume the response is in this dataset I would say it is vocab since we are predicting for how many words a person can define. The other features would make sense to try and predict this.
+
 Create two different plots and identify the best-looking plot you can to examine the `age` variable. Save the best looking plot as an appropriately-named PDF.
 
 ```{r}
