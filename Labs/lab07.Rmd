@@ -1,6 +1,6 @@
 ---
 title: "Lab 7"
-author: "Your Name Here"
+author: "Peter Antonaros"
 output: pdf_document
 ---
 
@@ -13,7 +13,9 @@ https://www.oracle.com/java/technologies/downloads/
 Then try to install rJava
 
 ```{r}
-options(java.parameters = "-Xmx4000m")
+#install.packages("rJava")
+
+options(java.parameters = "-Xmx8000m")
 library(rJava)
 .jinit()
 ```
@@ -85,67 +87,232 @@ ggplot(data.frame(angles = c(D)))+
 Write an Rcpp function `all_angles_cpp` that does the same thing. Use an IDE if you want, but write it below in-line.
 
 ```{r}
-#TO-DO
+cppFunction('
+  
+  NumericMatrix all_angles_cpp(NumericMatrix X){
+    
+    int n = X.nrow();
+    int p = X.ncol();
+    NumericMatrix D(n,n);
+    std::fill(D.begin(), D.end(), NA_REAL);
+    
+    for(int i =0; i<(n-1); i++){
+    
+      for(int j=i+1; j<n; j++){
+      
+        double dot_product = 0;
+        double length_x_i_sq = 0;
+        double length_x_j_sq = 0;
+        
+        for(int k=0; k<p; k++){
+        
+          dot_product += X(i,k) * X(j,k);
+          length_x_i_sq += pow(X(i,k),2);
+          length_x_j_sq += pow(X(j,k),2);
+        }
+        
+        D(i,j) = acos(dot_product/sqrt(length_x_i_sq * length_x_j_sq))*(180.0/M_PI);
+      }
+    }
+    
+    return D;
+  }
+')
+
 ```
 
 Test the time difference between these functions for `n = 1000` and `Nvec = 100, 500, 1000, 5000` using the package `microbenchmark`.  Store the results in a matrix with rows representing `Nvec` and two columns for base R and Rcpp.
 
 ```{r}
+#install.packages("microbenchmark")
+library(microbenchmark)
 Nvecs = c(100, 500, 1000, 5000)
 
 results_for_time = data.frame(
   Nvec = Nvecs,
-  time_for_base_R = numeric(),
-  time_for_cpp = numeric()
+  time_for_base_R = numeric(length = length(Nvecs)),
+  time_for_cpp = numeric(length = length(Nvecs))
 )
+
 for (i in 1 : length(Nvecs)){
   X = matrix(rnorm(n * Nvecs[i]), nrow = Nvec)
-  results_for_time$time_for_base_R[i] = all_angles(X)
-  results_for_time$time_for_cpp[i] = all_angles_cpp(X)
+  
+  results_for_time$time_for_base_R[i] = mean(microbenchmark(r_angles = all_angles(X), unit = "s")$time)
+                 
+  results_for_time$time_for_cpp[i] = mean(microbenchmark(cpp_angles = all_angles_cpp(X), unit = "s")$time)
+  
 }
 
-ggplot(results_for_time) + 
-  geom_line(aes(x = Nvec, y = time_for_base_R), col = "red") +
-  geom_line(aes(x = Nvec, y = time_for_cpp), col = "blue")
 ```
 
-Plot the divergence of performance (in log seconds) over n using a line geometry. Use two different colors for the R and CPP functions. Make sure there's a color legend on your plot. We wil see later how to create "long" matrices that make such plots easier.
+Plot the divergence of performance (in log seconds) over n using a line geometry. Use two different colors for the R and CPP functions. Make sure there's a color legend on your plot. We will see later how to create "long" matrices that make such plots easier.
 
 ```{r}
-#TO-DO
+ggplot(results_for_time) + 
+  geom_line(aes(x = Nvec, y = log(time_for_base_R),col = "R Time")) +
+  geom_line(aes(x = Nvec, y = log(time_for_cpp), col = "CPP Time")) +
+  xlab("Length of Vector (n)")+
+  ylab("Time (log seconds)")
 ```
 
 Let `Nvec = 10000` and vary `n` to be 10, 100, 1000. Plot the density of angles for all three values of `n` on one plot using color to signify `n`. Make sure you have a color legend. This is not easy.
 
 ```{r}
-#TO-DO
+#I cannot run it with Nvec = 10000, rStudio uses over 16gb of ram :( Need to download more ram XD
+Nvec = 1000
+n = c(10, 100, 1000)
+angleDensities = vector("list", 3)
+
+for(i in 1:length(n)){
+  
+  X = matrix(rnorm(n[i] * Nvec), nrow = Nvec)
+  
+  angleDensities[[i]] = all_angles_cpp(X)
+}
+
+
+ggplot()+
+  geom_density(aes(x=angleDensities[[1]], fill = 'red'), alpha = 0.5)+
+  geom_density(aes(x=angleDensities[[2]], fill = 'blue'), alpha = 0.5)+
+  geom_density(aes(x=angleDensities[[3]], fill = 'green'), alpha = 0.5)+
+  scale_fill_discrete(labels = c("n=10", "n=100", "n=1000"))+
+  xlab("Angle")+
+  ylab("Density")
 ```
 
-Write an R function `nth_fibonnaci` that finds the nth Fibonnaci number via recursion but allows you to specify the starting number. For instance, if the sequency started at 1, you get the familiar 1, 1, 2, 3, 5, etc. But if it started at 0.01, you would get 0.01, 0.01, 0.02, 0.03, 0.05, etc.
+Write an R function `nth_fibonnaci` that finds the nth Fibonacci number via recursion but allows you to specify the starting number. For instance, if the sequence started at 1, you get the familiar 1, 1, 2, 3, 5, etc. But if it started at 0.01, you would get 0.01, 0.01, 0.02, 0.03, 0.05, etc.
 
 ```{r}
-#TO-DO
+nth_fibonnaci = function(fibLimit){
+  
+  if(fibLimit <= 1){
+    return(fibLimit)
+  }else{
+    
+    return(nth_fibonnaci(fibLimit-1) + nth_fibonnaci(fibLimit-2))
+    
+  }
+  
+}
+
 ```
 
-Write an Rcpp function `nth_fibonnaci_cpp` that does the same thing. Use an IDE if ou want, but write it below in-line.
+Write an Rcpp function `n4th_fibonnaci_cpp` that does the same thing. Use an IDE if ou want, but write it below in-line.
 
 ```{r}
-#TO-DO
+cppFunction('
+   int nth_fibonnaci_cpp(int fibLimit){
+    if(fibLimit <=1){
+      return(fibLimit);
+    }else{
+    
+      return (nth_fibonnaci_cpp(fibLimit-1) + nth_fibonnaci_cpp(fibLimit-2));
+    }
+   }          
+            
+')
+
 ```
 
 Time the difference in these functions for n = 100, 200, ...., 1500 while starting the sequence at the smallest possible floating point value in R. Store the results in a matrix.
 
 ```{r}
-#TO-DO
+
+n = c(1,5,10,15,20,25) #n values > 25 both functions start to struggle
+
+fib_timing = data.frame(
+  n = n,
+  fib_R = numeric(length = length(n)),
+  fib_cpp = numeric(length = length(n))
+)
+
+for (i in 1 : length(n)){
+  
+  
+  fib_timing$fib_R[i] = mean(microbenchmark(r_fib = nth_fibonnaci(n[i]), unit = "s")$time)
+                 
+  fib_timing$fib_cpp[i] = mean(microbenchmark(cpp_fib = nth_fibonnaci_cpp(n[i]), unit = "s")$time)
+  
+}
+
+fib_timing
+```
+
+```{r}
+#Below is just a fun exercise to really test the two languages against each other without recursion
+#Using dynamic programming allows us to go to any nth number in the Fibonacci sequence so we are simply testing speed here
+#The only "issue" here now is overflow for when the numbers get too large for cpp, but cpp is nearly instant for the values it can compute
+
+nth_fibonnaci_dynamic = function(fibLimit){
+  f = c()
+  f[1] = 0
+  f[2] = 1
+
+  for(i in 3:fibLimit){
+  
+    f[i] = f[i-1] + f[i-2]
+  }
+  
+  return(f[fibLimit])
+}
+
+
+
+cppFunction('
+   long nth_fibonnaci_cpp_dynamic(int fibLimit){
+      int f[fibLimit + 2];
+    
+      f[0] = 0;
+      f[1] = 1;
+ 
+      for(int i = 2; i <= fibLimit; i++){
+        f[i] = f[i - 1] + f[i - 2];
+      }
+      return f[fibLimit];
+    }
+')
+
+n_dyn = c(5,10,15,20,25,40)
+fib_timing_dynamic = data.frame(
+  n_dyn = n_dyn,
+  fib_R_dyn = numeric(length = length(n_dyn)),
+  fib_cpp_dyn = numeric(length = length(n_dyn))
+)
+
+for (i in 1 : length(n_dyn)){
+  
+  
+  fib_timing_dynamic$fib_R_dyn[i] = mean(microbenchmark(r_fib_dyn = nth_fibonnaci_dynamic(n_dyn[i]), unit = "s")$time)
+                 
+  fib_timing_dynamic$fib_R_dyn[i] = mean(microbenchmark(cpp_fib_dyn = nth_fibonnaci_cpp_dynamic(n_dyn[i]), unit = "s")$time)
+  
+}
+
+fib_timing_dynamic
+
+
 ```
 
 Plot the divergence of performance (in log seconds) over n using a line geometry. Use two different colors for the R and CPP functions. Make sure there's a color legend on your plot.
 
 ```{r}
-#TO-DO
+#With recursion
+
+ggplot(fib_timing) + 
+  geom_line(aes(x = n, y = log(fib_R),col = "R Time")) +
+  geom_line(aes(x = n, y = log(fib_cpp), col = "CPP Time")) +
+  xlab("Length of Vector (n)")+
+  ylab("Time (log seconds)")
 ```
 
-
+```{r}
+#With Dynamic Programming, CPP is so close to 0 seconds it doesn't scale on axis!
+ggplot(fib_timing_dynamic) + 
+  geom_line(aes(x = n_dyn, y = log(fib_R_dyn),col = "R Time")) +
+  geom_line(aes(x = n_dyn, y = log(fib_cpp_dyn), col = "CPP Time")) +
+  xlab("Length of Vector (n)")+
+  ylab("Time (log seconds)")
+```
 
 # Tress, bagged trees and random forests
 
@@ -169,25 +336,56 @@ Plot an example dataset of size 500:
 
 ```{r}
 pacman::p_load(ggplot2)
-#TO-DO
+
+ggplot(data.frame(cbind(x_train, y_train)))+
+  geom_point(aes(x=x_train, y=y_train))
+  
 ```
 
 Create a test set of size 500 as well
 
 ```{r}
-#TO-DO
+x_test = runif(n, x_min, x_max)
+y_test = y_x(x_test, sigma)
 ```
 
 Locate the optimal node size hyperparameter for the regression tree model. I believe you can use `randomForest` here by setting `ntree = 1`, `replace = FALSE`, `sampsize = n` (`mtry` is already set to be 1 because there is only one feature) and then you can set `nodesize`. Plot nodesize by out of sample s_e. Plot.
 
 ```{r}
-#TO-DO
+library('randomForest')
+nodeSizes = seq(1,500)
+oos_SE_list = rep(NA,length(nodeSizes))
+
+for(currNodeSize in nodeSizes){
+  #Create a random forest model with nodesize, y_train ~ x_train
+  currRandForest = randomForest(y_train ~ x_train, nodesize = currNodeSize, ntree = 1, replace = FALSE, sampsize=n)
+  
+  #Compute error of y_hat with y_test
+  y_hat = predict(currRandForest, x_test)
+  
+  res_vals = y_test - y_hat
+  oos_SE = sd(res_vals)
+  
+  #Add to out of sample se list
+  oos_SE_list[currNodeSize] = oos_SE
+}
+
+ggplot(data.frame(cbind(nodeSizes, oos_SE_list)))+
+  geom_point(aes(x=nodeSizes, y=oos_SE_list))
+
 ```
 
 Plot the regression tree model g(x) with the optimal node size.
 
 ```{r}
-#TO-DO
+
+optRandForest = randomForest(y_train ~ x_train, nodesize = 25, ntree = 1, replace = FALSE, sampsize=n)
+
+
+ggplot(data.frame(cbind(x_train,y_train)))+
+  geom_point(aes(x=x_train, y=y_train))+
+  geom_line(aes(x=x_train, y=predict(optRandForest, x_test), color = 'yHat'))
+
 ```
 
 Provide the bias-variance decomposition of this DGP fit with this model. It is a lot of code, but it is in the practice lectures. If your three numbers don't add up within two significant digits, increase your resolution.
@@ -204,45 +402,129 @@ rm(list = ls())
 Take a sample of n = 2000 observations from the diamonds data.
 
 ```{r}
-#TO-DO
+n=2000
+k = 1/5
+diamonds = diamonds[sample(1:nrow(diamonds), n),]
+trainSplit = diamonds[1:(nrow(diamonds)*(1-k)),]
+testSplit = diamonds[(nrow(diamonds)*(1-k)+1):nrow(diamonds),]
+
+x_train = trainSplit[,2:ncol(trainSplit)]
+y_train = trainSplit$carat
+
+x_test = testSplit[,2:ncol(testSplit)]
+y_test = testSplit$carat
+
+x_train
+
 ```
 
 Find the bootstrap s_e for a RF model using 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000 trees. If you are using the `randomForest` package, you can calculate oob residuals via `e_oob = y_train - rf_mod$predicted`. Plot.
 
 ```{r}
-#TO-DO
+#Trying with YARF rather than randomForest, takes too long for above 300 trees on my computer
+#I did this for each question that asks to go to 1000 trees. I capped it at 300
+#300 still provides a good enough idea of what is happening as the numTrees increases 
+trees = c(1,2,5,10,20,30,40,50,100,200,300)
+s_eList = list()
+
+for(currIndex in 1:length(trees)){
+    
+    
+    #Bootstrap forests
+    bootstrap_indices = sample(1 : (n*(1-k)), replace = TRUE)
+    
+    curr_Forest = YARF(data.frame(x=x_train[bootstrap_indices,]), y_train, calculate_oob_error = FALSE ,num_trees = trees[currIndex])
+ 
+    #Predict
+    y_hats = predict(curr_Forest, data.frame(x = x_test))
+    
+    e_oob = y_train - y_hats
+    
+    s_eList[currIndex] = sd(e_oob)
+}
+
+ggplot(data.frame(cbind(trees,unlist(s_eList))))+
+  geom_point(aes(x=trees, y=unlist(s_eList)))
+
+
+
 ```
+
 
 Using the diamonds data, find the oob s_e for a bagged-tree model using 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000 trees. If you are using the `randomForest` package, you can create the bagged tree model via setting an argument within the RF constructor function. Plot.
 
 ```{r}
-#TO-DO
+trees = c(1,2,5,10,20,30,40,50,100,200,300)
+s_eList_bagged = list()
+
+for(currIndex in 1:length(trees)){
+    
+  
+    curr_Forest = YARFBAG(data.frame(x=x_train), y_train, calculate_oob_error = FALSE, num_trees = trees[currIndex])
+
+    #Predict
+    y_hats = predict(curr_Forest, data.frame(x = x_test))
+    
+    e_oob = y_train - y_hats
+    
+    s_eList_bagged[currIndex] = sd(e_oob)
+}
+
+ggplot(data.frame(cbind(trees,unlist(s_eList_bagged))))+
+  geom_point(aes(x=trees, y=unlist(s_eList_bagged)))
+
+
 ```
 
 
 What is the percentage gain / loss in performance of the RF model vs bagged trees model?
 
 ```{r}
-#TO-DO
+#Bagging decreases the variance by quite a bit which is evident by the y-axis values
+((unlist(s_eList_bagged)-unlist(s_eList))/(unlist(s_eList)))*100
+
+#This is showing that there is a considerable jump in error of the bagged trees
+#We would consider this not to be good, but the variance has decreased which is better in our case
+#This represents a better "average" tree rather than simply getting lucky with 1 good tree without bagging
 ```
 
 
 Plot oob s_e by number of trees for both RF and bagged trees using a long data frame.
 
 ```{r}
-#TO-DO
+
 ```
 
-Build RF models for 500 trees using different `mtry` values: 1, 2, ... the maximum. That maximum will be the number of features assuming that we do not binarize categorical features if you are using `randomForest` or the number of features assuming binarization of the categorical features if you are using `YARF`. Calculate oob s_e for all mtry values. Plot.
+Build RF models for 500 trees using different `mtry` values: 1, 2, ... the maximum. That maximum will be the number of features assuming that we do not binarize categorical features if you are using `randomForest` or the number of features assuming binarization of the categorical features if you are using `YARF`. Calculate oob s_e for all mtry values.
 
 ```{r}
-#TO-DO
+maxFeat = 9
+mtryList = seq(1,9)
+oos_SE_list = rep(NA,length(mtryList))
+
+for(currFeat in mtryList){
+  
+  #Create a random forest model with nodesize, y_train ~ x_train
+  currRandForest = randomForest(x_train, y_train, num_trees = 500, mtry = currFeat,  replace = FALSE)
+  
+  #Compute error of y_hat with y_test
+  y_hat = predict(currRandForest, x_test)
+  
+  e_oob = y_train - y_hat
+
+  #Add to out of sample se list
+  oos_SE_list[currFeat] = sd(e_oob)
+}
+
 ```
 
 Plot oob s_e by mtry.
 
 ```{r}
-#TO-DO
+
+ggplot(data.frame(cbind(mtryList, oos_SE_list)))+
+  geom_point(aes(x=mtryList, y=oos_SE_list)) 
+
 ```
 
 ```{r}
@@ -253,90 +535,91 @@ rm(list = ls())
 Take a sample of n = 2000 observations from the adult data.
 
 ```{r}
-#TO-DO
+rm(list = ls())
+pacman::p_load_gh("coatless/ucidata")
+library("dplyr")
+
+n_samp = 2000
+adult_samp = adult %>% sample_n(n_samp)
+y = adult_samp$income
+X = adult_samp %>% dplyr::select(-income)
+
+
 ```
 
 Using the adult data, find the bootstrap misclassification error for an RF model using 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000 trees.
 
 ```{r}
-#TO-DO
+trees = c(1,2,5,10,20,30,40,50,100,200,300) 
+m_error_rf = list()
+m_error_bagged = list()
+for(currTrees in 1:length(trees)){
+  
+  #mod_bag = YARFBAG(x_train, y_train, num_trees = trees[currTrees])
+  
+  mod_bag = YARFBAG(X ,y, num_trees = trees[currTrees])
+  #currForest = YARF(x_train, y_train, num_trees = trees[currTrees], bootstrap_indices = mod_bag$bootstrap_indices) 
+  currForest = YARF(X, y, num_trees = trees[currTrees],bootstrap_indices = mod_bag$bootstrap_indices)
+  
+  m_error_rf[currTrees] = currForest$misclassification_error
+  m_error_bagged[currTrees] = mod_bag$misclassification_error
+  
+}
+
+m_error_rf #bootstrap ME for non-bagged tree
+m_error_bagged #bootstrap ME for bagged tree
 ```
 
 Using the adult data, find the bootstrap misclassification error for a bagged-tree model using 1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000 trees. Plot.
 
 ```{r}
-#TO-DO
+#In the above cell, bagged tree model is included with its own error
+#
+#
+#
+#
 ```
 
 What is the percentage gain / loss in performance of the RF model vs bagged trees model?
 
 ```{r}
-#TO-DO
+((unlist(m_error_bagged)-unlist(m_error_rf))/(unlist(m_error_rf)))*100
 ```
 
 Plot bootstrap misclassification error by number of trees for both RF and bagged trees using a long data frame.
 
 ```{r}
-#TO-DO
+
+
 ```
 
-Build RF models for 500 trees using different `mtry` values: 1, 2, ... the maximum (see above as maximum is defined by the specific RF algorithm implementation). Plot.
+Build RF models for 500 trees using different `mtry` values: 1, 2, ... the maximum (see above as maximum is defined by the specific RF algorithm implementation).
 
 ```{r}
-#TO-DO
+maxFeat = 97 #Max number of features assuming binarization of categorical features & using reference category
+mtryList = seq(1,10) #My computer cannot handle going to 97 without taking many many HOURS
+m_error_boot = list()
+maxTrees = 200 #computer couldn't handle 500 too much memory is used
+
+for(currFeat in mtryList){
+  
+  mod_bag = YARFBAG(X ,y, num_trees = maxTrees)
+  currRandForest = YARF(X, y, num_trees = maxTrees, mtry = currFeat, bootstrap_indices = mod_bag$bootstrap_indices)
+  
+  m_error_boot[currFeat] = mod_bag$misclassification_error
+}
+
 ```
 
 Plot bootstrap misclassification error by `mtry`.
 
 ```{r}
-#TO-DO
+ggplot(data.frame(cbind(mtryList, unlist(m_error_boot))))+
+  geom_point(aes(x=mtryList, y=unlist(m_error_boot))) 
+
 ```
 
 
 ```{r}
 rm(list = ls())
-```
-
-Write a function `random_bagged_ols` which takes as its arguments `X` and `y` with further arguments `num_ols_models` defaulted to 100 and `mtry` defaulted to NULL which then gets set within the function to be 50% of available features. This argument builds an OLS on a bootstrap sample of the data and uses only `mtry < p` of the available features. The function then returns all the `lm` models as a list with size `num_ols_models`.
-
-```{r}
-#TO-DO
-
-```
-
-Load up the Boston Housing Data and separate into `X` and `y`.
-
-```{r}
-#TO-DO
-```
-
-Similar to lab 1, write a function that takes a matrix and punches holes (i.e. sets entries equal to `NA`) randomly with an argument `prob_missing`.
-
-```{r}
-#TO-DO
-```
-
-Create a matrix `Xmiss` which is `X` but has missingness with probability of 10%.
-
-```{r}
-#TO-DO
-```
-
-Use a random forest modeling procedure to iteratively fill in the `NA`'s by predicting each feature of X using every other feature of X. You need to start by filling in the holes to use RF. So fill them in with the average of the feature.
-
-```{r}
-Ximps = list()
-
-
-t = 1
-repeat {
-  for (j in 1 : p){
-    Ximps[[t]][, j] = randomForest(X = Ximps[[j - 1]] %>% select(-j), y = Ximps[[j - 1]][, j])
-  }
-  t = t + 1
-  #stop condition if Ximps[[t]] - Ximps[[t - 1]] is close together
-  if (stop){
-    break
-  }
-}
 ```
