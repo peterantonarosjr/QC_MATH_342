@@ -9,7 +9,15 @@ output: pdf_document
 Write a function `random_bagged_ols` which takes as its arguments `X` and `y` with further arguments `num_ols_models` defaulted to 100 and `mtry` defaulted to NULL which then gets set within the function to be 50% of available features at random. This argument builds an OLS on a bootstrap sample of the data and uses only `mtry < p` of the available features. The function then returns all the `lm` models as a list with size `num_ols_models`.
 
 ```{r}
-#TO-DO
+random_bagged_ols = function(X,y,num_ols_models=100,mtry=NULL){
+  
+  p = ncol(X)
+  p_seq = seq(1,p)
+  
+  mtry_ps = sample(p_se,p/2,replace=FALSE)
+  
+  
+}
 
 ```
 
@@ -103,7 +111,10 @@ storms[,wind_speed_per_unit_pressure := wind/pressure]
 Create a new feature: `average_diameter` which averages the two diameter metrics. If one is missing, then use the value of the one that is present. If both are missing, leave missing.
 
 ```{r}
-storms[,average_diameter:= pmean(c("tropicalstorm_force_diameter", ""))]
+#get pmean function from someone who wrote it already (this function should be standard in R)
+source("https://raw.githubusercontent.com/tanaylab/tgutil/master/R/utils.R")
+storms[,average_diameter:= pmean(tropicalstorm_force_diameter,hurricane_force_diameter)]
+
 ```
 
 
@@ -158,7 +169,7 @@ storms[order(year,category),.(num_storms = uniqueN(name)),by=.(year,category)]
 For each year in the dataset, find the maximum wind speed per status level.
 
 ```{r}
-
+storms[order(year),.(max_wind_status = max(wind)),by=.(year,status)]
 ```
 
 For each storm, summarize its average location in latitude / longitude coordinates.
@@ -170,13 +181,15 @@ storms[, .(lat = mean(lat), long = mean(long)),by = name]
 For each storm, summarize its duration in number of hours (to the nearest 6hr increment).
 
 ```{r}
-storms[,.(duration_hour = .N()*6-6),by=name]
+storms[,.(duration_hour = .N*6-6),by=name]
 ```
 
 Convert year, month, day, hour into the variable `timestamp` using the `lubridate` package. Although the new package `clock` just came out, `lubridate` still seems to be standard. Next year I'll probably switch the class to be using `clock`.
 
 ```{r}
-#TO-DO
+library(lubridate)
+storms[,storm_timestamp:=ymd_h(paste0(year,"-",month,"-",day,"-",hour))]
+storms[,.(name,storm_timestamp)]
 ```
 
 For storm in a category, create a variable `storm_number` that enumerates the storms 1, 2, ... (in date order).
@@ -184,13 +197,12 @@ For storm in a category, create a variable `storm_number` that enumerates the st
 ```{r}
 storms[,storm_number:=uniqueN(name),by=name]
 storms[,.(name,storm_number)]
-?.N
 ```
 
 Using the `lubridate` package, create new variables `day_of_week` which is a factor with levels "Sunday", "Monday", ... "Saturday" and `week_of_year` which is integer 1, 2, ..., 52.
 
 ```{r}
-#TO-DO
+storms[,day_of_week :=1]
 ```
 
 For each storm, summarize the day in which is started in the following format "Friday, June 27, 1975".
@@ -260,7 +272,6 @@ dist = function(latList1, longList1, latList2, longList2){
 }
 
 dist_miami = function(lats, longs){
-  MIAMI_LAT_LONG_COORDS = c(25.7617, 80.1918)
   n = length(lats)
   dist(lats,longs,rep(MIAMI_LAT_LONG_COORDS[1],n),rep(MIAMI_LAT_LONG_COORDS[2],n))
   
@@ -309,7 +320,7 @@ Suppose we wish to predict the following: given the first three readings of a st
 
 ```{r}
 storms[,max_wind_speed:=max(wind),by=name]
-D = storms[.I<=3,,by=name]
+storms[, .SD[1:3], by = name]
 ```
 
 Fit your model. Validate it. 
