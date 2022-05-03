@@ -287,31 +287,43 @@ storms[,.(name,distance_to_miami_km,distance_to_miami_mi),]
 For each storm observation, use the function from the previous question to calculate the distance it moved since the previous observation.
 
 ```{r}
-#TO-DO
+storms %<>%
+  group_by(name) %>%
+  mutate(dist_from_prev = ifelse(name!=lag(name), 0, dist(lat,long,lag(lat),lag(long)))) %>%
+  mutate(dist_from_prev = ifelse(is.na(dist_from_prev), 0, dist_from_prev))
 ```
 
 For each storm, find the total distance it moved over its observations and its total displacement. "Distance" is a scalar quantity that refers to "how much ground an object has covered" during its motion. "Displacement" is a vector quantity that refers to "how far out of place an object is"; it is the object's overall change in position.
 
 ```{r}
-#
+storms %>%
+  group_by(name) %>%
+  summarize(Distance = sum(dist_from_prev), Displacement = paste(round(last(lat) - first(lat),2),"/",round(last(long)-first(long),2)))
 ```
 
 For each storm observation, calculate the average speed the storm moved in location.
 
 ```{r}
-#displacement / duration
+storms %<>%
+  mutate(speed = dist_from_prev/6)
 ```
 
 For each storm, calculate its average ground speed (how fast its eye is moving which is different from windspeed around the eye).
 
 ```{r}
-#TO-DO
+storms %>%
+  group_by(name) %>%
+  summarize(avg_ground_speed = mean(speed))
 ```
 
 Is there a relationship between average ground speed and maximum category attained? Use a dataframe summary (not a regression).
 
 ```{r}
-#TO-DO
+speed_category = storms %>%
+  group_by(name) %>%
+  summarize(avg_ground_speed = mean(speed), max_category = as.numeric(max(category)))
+
+cor(speed_category[,2], speed_category[,3])
 ```
 
 Now we want to transition to building real design matrices for prediction. This is more in tune with what happens in the real world. Large data dump and you convert it into $X$ and $y$ how you see fit.
@@ -320,21 +332,24 @@ Suppose we wish to predict the following: given the first three readings of a st
 
 ```{r}
 storms[,max_wind_speed:=max(wind),by=.(name,year)]
-storms[, .SD[1:3], by = name]
-Xy = first_three_readings = storms[, .(last_status = .SD[3,status], max_category = max(category), max_wind_thus_far = max(wind), min_pressure = min(pressure), max_pressure = max(pressure))]
-
+storms
+first_three_readings = storms[, .SD[1:3], by = .(name,year)]
+Xy = first_three_readings[, .(last_status = .SD[3,status], max_category = max(category), max_wind_thus_far = max(wind), min_pressure = min(pressure), max_pressure = max(pressure), y=max_wind_speed), by = .(name,year)]
+Xy = Xy[,.SD[1],by=.(name,year)]
+Xy[,max_category:=factor(max_category,ordered = FALSE)]
+Xy
 ```
 
 Fit your model. Validate it. 
  
 ```{r}
-lm_mod = lm(y~.-name,Xy)
+lm_mod = lm(y~.-name-max_category,Xy)
 summary(lm_mod)
 ```
 
 Assess your level of success at this endeavor.
 
-#TO-DO
+It is a garbage model. A R-Squared of 0.0228 and error of 31.36 -> These values mean we are explaining about 2% of the variance, and the wind confidence interval is +/- 31.36 (terrible)
 
 
 # More data munging with table joins
@@ -390,8 +405,11 @@ Since this is the response, we would like to construct the very best design matr
 I will create the basic steps for you guys. First, join the three datasets in an intelligent way. You will need to examine the datasets beforehand.
 
 ```{r}
-bills_with_payments = #TO-DO
-bills_with_payments_with_discounts = #TO-DO
+bills_with_payments = merge(bills,payments, all.x=TRUE,by.x="id",by.y="bill_id")
+
+bills_with_payments_with_discounts = merge(bills_with_payments,discounts, all.x=TRUE, by.x="id", by.y="id")
+
+bills_with_payments_with_discounts
 ```
 
 Now create the binary response metric `paid_in_full` as the last column and create the beginnings of a design matrix `bills_data`. Ensure the unit / observation is bill i.e. each row should be one bill! 
