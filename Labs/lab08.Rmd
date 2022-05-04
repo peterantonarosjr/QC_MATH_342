@@ -195,20 +195,31 @@ storms[,.(name,storm_timestamp)]
 For storm in a category, create a variable `storm_number` that enumerates the storms 1, 2, ... (in date order).
 
 ```{r}
-storms[,storm_number:=uniqueN(name),by=name]
-storms[,.(name,storm_number)]
+storms %>%
+  group_by(category, name) %>%
+  slice(1) %>%
+  group_by(category) %>%
+  mutate(storm_enum = dense_rank(paste(year,as.numeric(month), day))) %>%
+  select(storm_enum, name, category, year, month, day) %>%
+  distinct %>%
+  arrange(storm_enum, category)
 ```
 
 Using the `lubridate` package, create new variables `day_of_week` which is a factor with levels "Sunday", "Monday", ... "Saturday" and `week_of_year` which is integer 1, 2, ..., 52.
 
 ```{r}
-storms[,day_of_week :=1]
+storms %>%
+  mutate(day_of_week = weekdays(storm_timestamp), 
+         week_of_year = week(storm_timestamp))
 ```
 
 For each storm, summarize the day in which is started in the following format "Friday, June 27, 1975".
 
 ```{r}
-#TO-DO
+storms %>%
+  group_by(name) %>%
+  summarise(start_date = min(storm_timestamp)) %>%
+  mutate(start_date = paste(wday(start_date), paste(months(start_date), day(start_date), sep = ""), year))
 ```
 
 Create a new factor variable `decile_windspeed` by binning wind speed into 10 bins.
@@ -332,18 +343,13 @@ Suppose we wish to predict the following: given the first three readings of a st
 
 ```{r}
 storms[,max_wind_speed:=max(wind),by=.(name,year)]
-<<<<<<< Updated upstream
 storms
 first_three_readings = storms[, .SD[1:3], by = .(name,year)]
 Xy = first_three_readings[, .(last_status = .SD[3,status], max_category = max(category), max_wind_thus_far = max(wind), min_pressure = min(pressure), max_pressure = max(pressure), y=max_wind_speed), by = .(name,year)]
 Xy = Xy[,.SD[1],by=.(name,year)]
 Xy[,max_category:=factor(max_category,ordered = FALSE)]
 Xy
-=======
-storms[, .SD[1:3], by = name]
-Xy = first_three_readings = storms[, .(last_status = .SD[3,status], max_category = max(category), max_wind_thus_far = max(wind), min_pressure = min(pressure), max_pressure = max(pressure), y=max_wind_speed), by=.(name,year)]
 
->>>>>>> Stashed changes
 ```
 
 Fit your model. Validate it. 
@@ -368,25 +374,39 @@ pacman::p_load(tidyverse, magrittr, data.table)
 We will be using the `storms` dataset from the `dplyr` package. Filter this dataset on all storms that have no missing measurements for the two diameter variables, "ts_diameter" and "hu_diameter". Zeroes count as missing as well.
 
 ```{r}
-#TO-DO
+storms = storms %>%
+  filter(!is.na(tropicalstorm_force_diameter & hurricane_force_diameter) & tropicalstorm_force_diameter >0 & hurricane_force_diameter > 0)
+storms
 ```
 
 From this subset, create a data frame that only has storm name, observation period number for each storm (i.e., 1, 2, ..., T) and the "ts_diameter" and "hu_diameter" metrics.
 
 ```{r}
-#TO-DO
+storms = storms %>%
+  select(name, tropicalstorm_force_diameter, hurricane_force_diameter) %>%
+  group_by(name) %>%
+  mutate(period = row_number())
+storms
 ```
 
 Create a data frame in long format with columns "diameter" for the measurement and "diameter_type" which will be categorical taking on the values "hu" or "ts".
 
 ```{r}
-#TO-DO
+storms_data_long = pivot_longer(storms, 
+                                cols = matches("diameter"), 
+                                names_to = "diameter")
+
+storms_data_long
 ```
 
 Using this long-formatted data frame, use a line plot to illustrate both "ts_diameter" and "hu_diameter" metrics by observation period for four random storms using a 2x2 faceting. The two diameters should appear in two different colors and there should be an appropriate legend.
 
 ```{r}
-#TO-DO
+storms_sample = sample(unique(storms$name), 4)
+
+ggplot(storms_data_long %>% filter(name %in% storms_sample))+
+  geom_line(aes(x=period, y=value, col = diameter))+
+  facet_wrap(name ~.,nrow=2)
 ```
 
 In this next first part of this lab, we will be joining three datasets in an effort to make a design matrix that predicts if a bill will be paid on time. Clean up and load up the three files. Then I'll rename a few features and then we can examine the data frames:
@@ -402,6 +422,7 @@ setnames(payments, "amount", "paid_amount")
 head(bills)
 head(payments)
 head(discounts)
+pacman::p_load(lubridate)
 ```
 
 The unit we care about is the bill. The y metric we care about will be "paid in full" which is 1 if the company paid their total amount (we will generate this y metric later).
@@ -411,31 +432,38 @@ Since this is the response, we would like to construct the very best design matr
 I will create the basic steps for you guys. First, join the three datasets in an intelligent way. You will need to examine the datasets beforehand.
 
 ```{r}
-<<<<<<< Updated upstream
-bills_with_payments = merge(bills,payments, all.x=TRUE,by.x="id",by.y="bill_id")
+bills_with_payments = left_join(bills, payments, by = c("id" = "bill_id"))
 
-bills_with_payments_with_discounts = merge(bills_with_payments,discounts, all.x=TRUE, by.x="id", by.y="id")
-
-=======
-bills_with_payments = merge(bills,payments, all.x = TRUE, by.x="id", by.y = "bill_id")
-bills_with_payments
-
-bills_with_payments_with_discounts = merge(bills_with_payments, discounts, all.x = TRUE, by.x = "discount_id", by.y="id")
->>>>>>> Stashed changes
-bills_with_payments_with_discounts
+bills_with_payments_with_discounts = left_join(bills_with_payments, discounts, by=c("discount_id" = "id"))
 ```
 
 Now create the binary response metric `paid_in_full` as the last column and create the beginnings of a design matrix `bills_data`. Ensure the unit / observation is bill i.e. each row should be one bill! 
 
 ```{r}
-#TO-DO
-table(bills_data$paid_in_full, useNA = "always") 
+bills_data = bills_with_payments_with_discounts %>%
+  mutate(total_amount = if_else(is.na(pct_off), tot_amount, tot_amount * (1-pct_off/100))) %>%
+  group_by(id)%>%
+  mutate(sum_of_payment_amount = sum(paid_amount))%>%
+  mutate(paid_in_full = if_else(sum_of_payment_amount >= total_amount, 1, 0, missing = 0)) %>%
+  slice(1) %>%
+  ungroup()
+
+table(bills_data$paid_in_full, useNA = "always")
 ```
 
 How should you add features from transformations (called "featurization")? What data type(s) should they be? Make some features below if you think of any useful ones. Name the columns appropriately so another data scientist can easily understand what information is in your variables.
 
 ```{r}
-#TO-DO
+bills_data = bills_data %>%
+  select(-id, -id.y, -num_days, -transaction_date, -pct_off, -days_until_discount, -sum_of_payment_amount, -paid_amount) %>%
+  mutate(num_of_days_to_pay = as.integer(ymd(due_date)-ymd(invoice_date)))%>%
+  select(-due_date, -invoice_date)%>%
+  mutate(discount_id = as.factor(discount_id)) %>%
+  group_by(customer_id) %>%
+  mutate(bill_num = row_number()) %>%
+  ungroup() %>%
+  select(-customer_id) %>%
+  relocate(paid_in_full, .after = last_col())
 ```
 
 Now let's do this exercise. Let's retain 25% of our data for test.
@@ -453,25 +481,42 @@ Now try to build a classification tree model for `paid_in_full` with the feature
 Warning: this data is highly anonymized and there is likely zero signal! So don't expect to get predictive accuracy. The value of the exercise is in the practice. I think this exercise (with the joining exercise above) may be one of the most useful exercises in the entire semester.
 
 ```{r}
-#TO-DO
+pacman::p_load(YARF)
+options(java.parameters = "-Xmx8000m")
+library(rJava)
+.jinit()
+
+bills_data_train$y = bills_data_train$paid_in_full
+bills_data_train$paid_in_full = NULL
+
+y_train = as.factor(bills_data_train$y)
+bills_data_train$y = NULL
+
+yarfTree = YARFCART(X = bills_data_train, y = y_train, calculate_oob_error = FALSE)
 ```
 
 For those of you who installed `YARF`, what are the number of nodes and depth of the tree? 
 
 ```{r}
-#TO-DO
+get_tree_num_nodes_leaves_max_depths(yarfTree)
 ```
 
 For those of you who installed `YARF`, print out an image of the tree.
 
 ```{r}
-#TO-DO
+illustrate_tree(yarfTree, max_depth=4, open_file=TRUE)
 ```
 
 Predict on the test set and report the misclassifcation error
 
 ```{r}
-#TO-DO
+y_test = as.factor(bills_data_test$paid_in_full)
+bills_data_test$paid_in_full = NULL
+
+yhat = predict(yarfTree, bills_data_test)
+oos_table = table(y_test, yhat)
+
+oos_table
 ```
 
 ###### Everything below here is due with lab 9
