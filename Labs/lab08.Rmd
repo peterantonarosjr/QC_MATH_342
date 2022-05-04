@@ -16,6 +16,7 @@ random_bagged_ols = function(X,y,num_ols_models=100,mtry=NULL){
   
   mtry_ps = sample(p_se,p/2,replace=FALSE)
   
+  lm_model_list = c()
   
 }
 
@@ -28,7 +29,11 @@ For masters students: show that bagged ols does better than just ols out of samp
 Load up the Boston Housing Data and separate into `X` and `y`.
 
 ```{r}
-#TO-DO
+library(MASS)
+data(Boston)
+X <- as.matrix(Boston[,1:ncol(Boston)-1])
+y <- Boston$medv
+
 ```
 
 Similar to lab 1, write a function that takes a matrix and punches holes (i.e. sets entries equal to `NA`) randomly with an argument `prob_missing`.
@@ -482,7 +487,7 @@ Warning: this data is highly anonymized and there is likely zero signal! So don'
 
 ```{r}
 pacman::p_load(YARF)
-options(java.parameters = "-Xmx8000m")
+options(java.parameters = "-Xmx4000m")
 library(rJava)
 .jinit()
 
