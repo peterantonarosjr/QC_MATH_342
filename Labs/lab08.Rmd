@@ -714,8 +714,11 @@ ggplot(performance_metrics_oos)+
 Calculate AUC and interpret.
 
 ```{r}
+#Trapezoidal rule from pracma seems to be inaccurate. There is no way the red line is 50% and our black line only accounts for 8% more area
+
 pacman::p_load(pracma)
 -trapz(performance_metrics_oos$FPR, performance_metrics_oos$recall)
+
 ```
 
 #TO-DO interpretation
@@ -727,12 +730,9 @@ ggplot(performance_metrics_oos)+
   geom_line(aes(x=FDR,y=miss_rate))+
   coord_fixed() +xlim(0,1)+ylim(0,1)  
 
-
 ```
 
-#TO-DO interpretation
-
-
+Model keeps performing better until it hits a very small interval somewhere within ~ [.35-.4], but then keeps getting better again.
 
 
 
