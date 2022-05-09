@@ -487,9 +487,14 @@ Warning: this data is highly anonymized and there is likely zero signal! So don'
 
 ```{r}
 pacman::p_load(YARF)
-options(java.parameters = "-Xmx4000m")
+options(java.parameters = "-Xmx8000m")
 library(rJava)
 .jinit()
+gc()
+
+#pacman::p_install_gh("kapelner/YARF/YARFJARs", ref = "dev")
+#pacman::p_install_gh("kapelner/YARF/YARF", ref = "dev", force = TRUE)
+
 
 bills_data_train$y = bills_data_train$paid_in_full
 bills_data_train$paid_in_full = NULL
@@ -509,7 +514,7 @@ get_tree_num_nodes_leaves_max_depths(yarfTree)
 For those of you who installed `YARF`, print out an image of the tree.
 
 ```{r}
-illustrate_tree(yarfTree, max_depth=4, open_file=TRUE)
+illustrate_trees(yarfTree, max_depth=4, open_file=TRUE)
 ```
 
 Predict on the test set and report the misclassifcation error
@@ -519,9 +524,10 @@ y_test = as.factor(bills_data_test$paid_in_full)
 bills_data_test$paid_in_full = NULL
 
 yhat = predict(yarfTree, bills_data_test)
-oos_table = table(y_test, yhat)
 
-oos_table
+mc_error_oos = mean(y_test != yhat)
+
+mc_error_oos
 ```
 
 ###### Everything below here is due with lab 9
@@ -530,47 +536,177 @@ Report the following error metrics: misclassifcation error, precision, recall, F
 and compute a confusion matrix.
 
 ```{r}
-#TO-DO
+conf_matrix = table(y_test, yhat)
+
+n = sum(conf_matrix)
+fp = conf_matrix[1,2]
+fn = conf_matrix[2,1]
+tp = conf_matrix[2,2]
+tn = conf_matrix[1,1]
+
+pp = sum(conf_matrix[,2])
+pn = sum(conf_matrix[,1])
+
+pos = sum(conf_matrix[2,])
+neg = sum(conf_matrix[1,])
+
+missclass_error = (fn+fp)/n
+precision = tp/pp
+recall = tp/pos
+F1 = 2/((1/recall)+(1/precision))
+FDR = 1-precision
+FOR = fn/pn
+
+fp
+fn
+tp
+tn
+pp
+pn
+pos
+neg
+missclass_error
+precision
+recall
+F1
+FDR
+FOR
+
 ```
 
 Is this a good model? (yes/no and explain).
 
-#TO-DO
+With a misclassification rate of about 22% I would say this model is decent. Its not great but its better than the null model which albeit a low bar is still a bar to exceed.
+
 
 There are probability asymmetric costs to the two types of errors. Assign the costs below and calculate oos total cost.
 
 ```{r}
-#TO-DO
+
+
 ```
 
 We now wish to do asymmetric cost classification. Fit a logistic regression model to this data.
 
 ```{r}
-#TO-DO
+logistic_mod = glm(y_train ~ ., bills_data_train, family = binomial(link = "logit"))
+
+p_hats_train = predict(logistic_mod, bills_data_train, type ="response")
+
+p_hats_test = predict(logistic_mod, bills_data_test, type="response")
 ```
 
 Use the function from class to calculate all the error metrics for the values of the probability threshold being 0.001, 0.002, ..., 0.999 in a data frame.
 
 ```{r}
-#TO-DO
+compute_metrics_prob_classifier = function(p_hats, y_true, res = 0.001){
+  #we first make the grid of all prob thresholds
+  p_thresholds = seq(0 + res, 1 - res, by = res) #values of 0 or 1 are trivial
+  
+  #now we create a matrix which will house all of our results
+  performance_metrics = matrix(NA, nrow = length(p_thresholds), ncol = 12)
+  colnames(performance_metrics) = c(
+    "p_th",
+    "TN",
+    "FP",
+    "FN",
+    "TP",
+    "miscl_err",
+    "precision",
+    "recall",
+    "FDR",
+    "FPR",
+    "FOR",
+    "miss_rate"
+  )
+  
+  #now we iterate through each p_th and calculate all metrics about the classifier and save
+  n = length(y_true)
+  for (i in 1 : length(p_thresholds)){
+    p_th = p_thresholds[i]
+    
+    y_hats = factor(ifelse(p_hats >= p_th, 1, 0))
+    
+    confusion_table = table(
+      factor(y_true, levels = c(0, 1)),
+      factor(y_hats, levels = c(0, 1))
+    )
+      
+    fp = confusion_table[1, 2]
+    fn = confusion_table[2, 1]
+    tp = confusion_table[2, 2]
+    tn = confusion_table[1, 1]
+    npp = sum(confusion_table[, 2])
+    npn = sum(confusion_table[, 1])
+    np = sum(confusion_table[2, ])
+    nn = sum(confusion_table[1, ])
+  
+    performance_metrics[i, ] = c(
+      p_th,
+      tn,
+      fp,
+      fn,
+      tp,
+      (fp + fn) / n,
+      tp / npp, #precision
+      tp / np,  #recall
+      fp / npp, #false discovery rate (FDR)
+      fp / nn,  #false positive rate (FPR)
+      fn / npn, #false omission rate (FOR)
+      fn / np   #miss rate
+    )
+  }
+  
+  #finally return the matrix
+  performance_metrics
+}
+
+performance_metrics_oos = compute_metrics_prob_classifier(p_hats_test, y_test) %>% data.table
+performance_metrics_oos
 ```
 
 Calculate the column `total_cost` and append it to this data frame.
 
 ```{r}
-#TO-DO
+#Asymmetric cost = cost_fn*FN + cost_fp*FP
+r_tp = 0
+r_tn = 0 
+
+#False positive means you predicted they would pay their bill and they didn't. Cost of this is the bill in real world
+cost_fp = -1000
+
+#False negative means you predicted they would not pay their bill and they did. You sent them to collections and have to pay for that typically 15-50% of the total so lets just say 32.5 % of bill
+rate_of_collections = .325 
+cost_fn = rate_of_collections * -1000
+
+
+performance_metrics_oos$total_cost =
+    (
+      r_tp * performance_metrics_oos$TP+
+      r_tn * performance_metrics_oos$TN+
+      cost_fp * performance_metrics_oos$FP+
+      cost_fn * performance_metrics_oos$FN
+    )
+
+
+performance_metrics_oos$total_cost
 ```
 
 Which is the winning probability threshold value and the total cost at that threshold?
 
 ```{r}
-#TO-DO
+winning_thresh = which.max(performance_metrics_oos$total_cost)
+
+performance_metrics_oos[winning_thresh,]
 ```
 
 Plot an ROC curve and interpret.
 
 ```{r}
-#TO-DO
+ggplot(performance_metrics_oos)+
+  geom_line(aes(x=FPR,y=recall))+
+  geom_abline(intercept = 0, slope=1, col = "red")+
+  coord_fixed() +xlim(0,1)+ylim(0,1)
 ```
 
 #TO-DO interpretation
@@ -578,7 +714,8 @@ Plot an ROC curve and interpret.
 Calculate AUC and interpret.
 
 ```{r}
-#TO-DO
+pacman::p_load(pracma)
+-trapz(performance_metrics_oos$FPR, performance_metrics_oos$recall)
 ```
 
 #TO-DO interpretation
@@ -586,11 +723,14 @@ Calculate AUC and interpret.
 Plot a DET curve and interpret.
 
 ```{r}
-#TO-DO
+ggplot(performance_metrics_oos)+
+  geom_line(aes(x=FDR,y=miss_rate))+
+  coord_fixed() +xlim(0,1)+ylim(0,1)  
+
+
 ```
 
 #TO-DO interpretation
-
 
 
 
