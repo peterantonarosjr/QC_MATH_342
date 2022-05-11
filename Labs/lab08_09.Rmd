@@ -438,7 +438,6 @@ I will create the basic steps for you guys. First, join the three datasets in an
 
 ```{r}
 bills_with_payments = left_join(bills, payments, by = c("id" = "bill_id"))
-
 bills_with_payments_with_discounts = left_join(bills_with_payments, discounts, by=c("discount_id" = "id"))
 ```
 
@@ -673,11 +672,10 @@ r_tp = 0
 r_tn = 0 
 
 #False positive means you predicted they would pay their bill and they didn't. Cost of this is the bill in real world
-cost_fp = -1000
+cost_fp = 50000
 
 #False negative means you predicted they would not pay their bill and they did. You sent them to collections and have to pay for that typically 15-50% of the total so lets just say 32.5 % of bill
-rate_of_collections = .325 
-cost_fn = rate_of_collections * -1000
+cost_fn = 10000
 
 
 performance_metrics_oos$total_cost =
@@ -695,7 +693,7 @@ performance_metrics_oos$total_cost
 Which is the winning probability threshold value and the total cost at that threshold?
 
 ```{r}
-winning_thresh = which.max(performance_metrics_oos$total_cost)
+winning_thresh = which.min(performance_metrics_oos$total_cost)
 
 performance_metrics_oos[winning_thresh,]
 ```
@@ -727,7 +725,7 @@ Plot a DET curve and interpret.
 
 ```{r}
 ggplot(performance_metrics_oos)+
-  geom_line(aes(x=FDR,y=miss_rate))+
+  geom_line(aes(x=FDR,y=FOR))+
   coord_fixed() +xlim(0,1)+ylim(0,1)  
 
 ```
@@ -736,7 +734,10 @@ Model keeps performing better until it hits a very small interval somewhere with
 
 
 
-# The Forward Stepwise Procedure for Probability Estimation Models
+
+
+
+# The Forward Stepwise Procedure for Probability Estimation Models (OPTIONAL AFTER THIS)
 
 
 Set a seed and load the `adult` dataset and remove missingness and randomize the order.
