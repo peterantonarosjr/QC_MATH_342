@@ -733,11 +733,7 @@ ggplot(performance_metrics_oos)+
 Model keeps performing better until it hits a very small interval somewhere within ~ [.35-.4], but then keeps getting better again.
 
 
-
-
-
-
-# The Forward Stepwise Procedure for Probability Estimation Models (OPTIONAL AFTER THIS)
+# The Forward Stepwise Procedure for Probability Estimation Models
 
 
 Set a seed and load the `adult` dataset and remove missingness and randomize the order.
