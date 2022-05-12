@@ -1,0 +1,380 @@
+---
+title: "Lab 10"
+author: "Your Name Here"
+output: pdf_document
+date: "NOT DUE"
+---
+
+# Probability Estimation and Model Selection
+
+Load up the `adult` in the package `ucidata` dataset and remove missingness and the variable `fnlwgt`:
+
+```{r}
+rm(list = ls())
+pacman::p_load_gh("coatless/ucidata")
+data(adult)
+adult = na.omit(adult) #kill any observations with missingness
+adult$fnlwgt = NULL
+```
+
+Cast income to binary where 1 is the `>50K` level.
+
+```{r}
+adult$income = #TO-DO
+```
+
+
+We are going to do some dataset cleanup now. But in every cleanup job, there's always more to clean! So don't expect this cleanup to be perfect. 
+
+
+Firstly, a couple of small things. In variable `marital_status` collapse the levels `Married-AF-spouse` (armed force marriage) and `Married-civ-spouse` (civilian marriage) together into one level called `Married`. Then in variable `education` collapse the levels `1st-4th` and `Preschool` together into a level called `<=4th`.
+
+```{r}
+#TO-DO
+```
+
+Create a model matrix `Xmm` (for this prediction task on just the raw features) and show that it is *not* full rank (i.e. the result of `ncol` is greater than the result of `Matrix::rankMatrix`).
+
+```{r}
+#TO-DO
+```
+
+
+Now tabulate and sort the variable `native_country`.
+
+```{r}
+#TO-DO
+```
+
+Do you see rare levels in this variable? Explain why this may be a problem.
+
+#TO-DO
+
+Collapse all levels that have less than 50 observations into a new level called `other`. This is a very common data science trick that will make your life much easier. If you can't hope to model rare levels, just give up and do something practical! I would recommend first casting the variable to type "character" and then do the level reduction and then recasting back to type `factor`. Tabulate and sort the variable `native_country` to make sure you did it right.
+
+```{r}
+#TO-DO
+```
+
+We're still not done getting this data down to full rank. Take a look at the model matrix just for `workclass` and `occupation`. Is it full rank?
+
+
+```{r}
+#TO-DO
+```
+
+These variables are similar and they probably should be interacted anyway eventually. Let's combine them into one factor. Create a character variable named `worktype` that is the result of concatenating `occupation` and `workclass` togetther with a ":" in between. Use the `paste` function with the `sep` argument (this casts automatically to type `character`). Then tabulate its levels and sort. 
+
+```{r}
+#TO-DO
+```
+
+Like the `native_country` exercise, there are a lot of rare levels. Collapse levels with less than 100 observations to type `other` and then cast this variable `worktype` as type `factor`. Recheck the tabulation to ensure you did this correct.
+
+```{r}
+#TO-DO
+```
+
+
+To do at home: merge the two variables `relationship` and `marital_status` together in a similar way to what we did here.
+
+```{r}
+#TO-DO
+```
+
+We are finally ready to fit some probability estimation models for `income`! In lecture 16 we spoke about model selection using a cross-validation procedure. Let's build this up step by step. First, split the dataset into `Xtrain`, `ytrain`, `Xtest`, `ytest` using K=5.
+
+```{r}
+#TO-DO
+```
+
+Create the following four models on the training data in a `list` objected named `prob_est_mods`: logit, probit, cloglog and cauchit (which we didn't do in class but might as well). For the linear component within the link function, just use the vanilla raw features using the `formula` object `vanilla`. Each model's key in the list is its link function name + "-vanilla". One for loop should do the trick here.
+
+```{r}
+link_functions = c("logit", "probit", "cloglog", "cauchit")
+vanilla = income ~ .
+prob_est_mods = list()
+#TO-DO
+```
+
+Now let's get fancier. Let's do some variable transforms. Add `log_capital_loss` derived from `capital_loss` and `log_capital_gain` derived from `capital_gain`. Since there are zeroes here, use log_x = log(1 + x) instead of log_x = log(x). That's always a neat trick. Just add them directly to the data frame so they'll be picked up with the `.` inside of a formula.
+
+```{r}
+#TO-DO
+```
+
+Create a density plot that shows the age distribution by `income`.
+
+```{r}
+#TO-DO
+```
+
+What do you see? Is this expected using common sense?
+
+#TO-DO
+
+Now let's fit the same models with all link functions on a formula called `age_interactions` that uses interactions for `age` with all of the variables. Add all these models to the `prob_est_mods` list.
+
+```{r}
+age_interactions = class ~ #TO-DO
+#TO-DO
+```
+
+Create a function called `brier_score` that takes in a probability estimation model, a dataframe `X` and its responses `y` and then calculates the brier score.
+
+```{r}
+brier_score = function(prob_est_mod, X, y){
+  #TO-DO
+}
+```
+
+Now, calculate the in-sample Brier scores for all models. You can use the function `lapply` to iterate over the list and pass in in the function `brier_score`.
+
+```{r}
+#lapply(prob_est_mods, #TO-DO)
+```
+
+Now, calculate the out-of-sample Brier scores for all models. You can use the function `lapply` to iterate over the list and pass in the function `brier_score`.
+
+```{r}
+#lapply(prob_est_mods, #TO-DO)
+```
+
+Which model wins in sample and which wins out of sample? Do you expect these results? Explain.
+
+#TO-DO
+
+What is wrong with this model selection procedure? There are a few things wrong.
+
+#TO-DO
+
+Run all the models again. This time do three splits: subtrain, select and test. After selecting the best model, provide a true oos Brier score for the winning model.
+
+```{r}
+#TO-DO
+```
+
+# Missing Data
+
+Load up the Boston Housing Data and separate into `X` and `y`.
+
+```{r}
+rm(list = ls())
+y = MASS::Boston$medv
+X = 
+```
+
+917 662 4957
+
+
+Similar to lab 1, write a function that takes a matrix and punches holes (i.e. sets entries equal to `NA`) randomly with an argument `prob_missing`.
+
+```{r}
+make_missing_entries = function(X, prob_missing){
+  
+  for(i in 1:nrow(X)){
+    for(j in 1:ncol(X)){
+      
+      if(runif(1) < prob_misssing){
+        
+        X[i,j] = NA
+      }
+    }
+  }
+  
+  X
+}
+```
+
+Create a matrix `Xmiss` which is `X` but has missingness with probability of 10% using the function you just wrote.
+
+```{r}
+Xmiss = make_missing_entries(X,.1)
+```
+
+What type of missing data mechanism created the missingness in `Xmiss`?
+
+MCAR
+
+Impute using the feature averages to create a matrix `Ximpnaive`.
+
+```{r}
+xbars = colMeans(Xmiss, na.rm = TRUE)
+
+Ximpnaive = Xmiss
+
+Ximpnaive[,j] = ifelse(is.na(Xmiss[,j]), xbars[,j], Xmiss[,j])
+```
+
+Use `missForest` to impute the missing entries to create a matrix `XimpMF`.
+
+```{r}
+pacman::p_load(missForest)
+Xmiss$chas = factor(Xmiss$chas)
+XimpMF = missForest(Xmiss)$ximp
+```
+
+What is the s_e of the error for both the naive imputation with feature averages and the intelligent imputation with missForest?
+
+```{r}
+
+Enaive = matrix(NA, nrow(X), ncol(X))
+Emf = matrix(NA, nrow(X), ncol(X))
+
+for(i in 1:nrow(X)){
+  for(j in 1:ncol(X)){
+    
+    if(is.na(Xmiss[i,j])){
+      Enaive[i,j] = X[i,j] - Ximpnaive[i,j]
+      Emf[i,j] = X[i,j] - XimpMF[i,j]
+    }
+  }
+}
+```
+
+Create a function that creates missingness in the feature `rm` that is a MAR missing data mechanism.
+
+```{r}
+#TO-DO
+```
+
+
+Create a function that creates missingness in the feature `rm` that is a NMAR missing data mechanism.
+
+```{r}
+#TO-DO
+```
+
+Run an OLS model on the diamonds dataset using only the features `carat` and `table`. Print out the coefficients.
+
+
+```{r}
+#TO-DO
+```
+
+Interpret the coefficient for `carat`
+
+#TO-DO
+
+Run a logistic regression probability estimation model on the adult dataset using only the features `age` and `education_num`. Print out the coefficients.
+
+
+```{r}
+pacman::p_load_gh("coatless/ucidata")
+data(adult)
+adult = na.omit(adult) #kill any observations with missingness
+#TO-DO
+```
+
+
+Interpret the coefficient for `education_num`
+
+#TO-DO
+
+Let y = the binary category which is 1 if the income is >50L and 0 if not and x = education_num. Let z = one of the causal variables that influences y directly. Is this an example of causal scenario A, B or C. Explain.
+
+#TO-DO
+
+In a matrix X, generate n = 200 observations each with p = 2,000 features which are all realizations from an iid N(0, 1) r.v. Then generate responses y, a vector of length n also from an iid N(0, 1) r.v.
+
+```{r}
+#TO-DO
+```
+
+Scan through each of the 2,000 features looking for the maximum R^2 between x_j and y among only the first 100 observations. Plot the x_j and y that has the highest R^2 for the first 100 observations.
+
+```{r}
+pacman::p_load(ggplot2)
+#TO-DO
+```
+
+Now plot this x_j and y for all 200 observations.
+
+```{r}
+#TO-DO
+```
+
+Is this an example of a "spurious correlation"? Yes/no and explain.
+
+#TO-DO
+
+Run the following code to create dataset but don't read it:
+
+```{r}
+rm(list = ls())
+set.seed(1)
+n = 200
+salary_data = rbind(
+  data.frame(
+    is_male = rep(1, n / 2),
+    height_in_inches = rnorm(n / 2, 70, 3),
+    salary_in_thou = rnorm(n / 2, 60, 15)
+  ),
+  data.frame(
+    is_male = rep(0, n / 2),
+    height_in_inches = rnorm(n / 2, 64, 3),
+    salary_in_thou = rnorm(n / 2, 50, 15)
+  )
+)
+```
+
+Using the `salary_data` data frame, run an OLS model predicting `salary_in_thou` using `height_in_inches`.
+
+```{r}
+summary(lm(salary_in_thou ~ height_in_inches, salary_data))
+```
+
+Interpret the coefficient of `height_in_inches`.
+ 
+#TO-DO
+
+Plot `salary_in_thou` vs `height_in_inches`.
+
+```{r}
+#TO-DO
+```
+
+Now run an OLS model predicting `salary_in_thou` using both `height_in_inches` and `is_male`.
+
+```{r}
+summary(lm(salary_in_thou ~ height_in_inches + is_male, salary_data))
+```
+
+Interpret the coefficient of `height_in_inches`.
+ 
+#TO-DO
+
+Although we didn't discuss this in class, the *'s in the summary of a linear model indicates there is evidence that this OLS slope coefficient is nonzero. In the first model, there was evidence that the OLS slope coefficient for `height_in_inches` was nonzero but in the second model there is no longer any evidence that the OLS slope coefficient for `height_in_inches`is nonzero. This may indicate that `is_male` is what type of variable? 
+ 
+#TO-DO
+
+Of the three causal scenarios we discussed in class (A, B and C), what is the likely scenario here?
+ 
+#TO-DO
+
+Are we sure that `is_male` is a causal variable with respect to the phenomenon `salary_in_thou`? Yes/no and explain.
+
+#TO-DO
+
+In the `diamonds` data, consider the OLS model where the features are all second-order interactions. Use a cross-validated lasso (via the `glmnet.cv` function in the `glmnet` package) to select variables that are useful in predicting the dimaonds' prices. Print out a list of the selected variables. If this takes too long, subsample the data so there is n=2000 observations.
+
+```{r}
+rm(list = ls())
+pacman::p_load(glmnet)
+#TO-DO
+```
+
+In the `adult` data, consider the logistic regression model of all second-order interactions. Use a cross-validated lasso (via the `glmnet.cv` function in the `glmnet` package) to select variables that are useful in predicting the binary income level. We never discussed lasso for logistic regression, but it is the same as regular logistic regression where you minimize the likelihood but now add the regularization penalty to the optimization problem. This is all handled for us by merely passing the `family = "binomial"` argument into the `glmnet.cv` function. Print out a list of the selected variables. If this takes too long, subsample the data so there is n=2000 observations.
+
+```{r}
+rm(list = ls())
+#TO-DO
+```
+
+Returning to the diamonds dataset, leave a 10% holdout and compare the oos performance of the linear model of all second-order interactions among the following three algorithms: a cross-validated ridge, a cross-validated lasso and a cross-validated elastic net (where alpha = 1/2).
+
+```{r}
+rm(list = ls())
+#TO-DO
+```
+
