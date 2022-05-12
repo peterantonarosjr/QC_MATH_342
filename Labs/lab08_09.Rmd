@@ -414,6 +414,11 @@ ggplot(storms_data_long %>% filter(name %in% storms_sample))+
   facet_wrap(name ~.,nrow=2)
 ```
 
+#
+#
+# LAB 9 BELOW
+#
+#
 In this next first part of this lab, we will be joining three datasets in an effort to make a design matrix that predicts if a bill will be paid on time. Clean up and load up the three files. Then I'll rename a few features and then we can examine the data frames:
 
 ```{r}
@@ -456,14 +461,13 @@ table(bills_data$paid_in_full, useNA = "always")
 How should you add features from transformations (called "featurization")? What data type(s) should they be? Make some features below if you think of any useful ones. Name the columns appropriately so another data scientist can easily understand what information is in your variables.
 
 ```{r}
+pacman::p_load(lubridate)
 #convert discount types to factors and include missingness as a legal level
 bills_with_payments_with_discounts[, discount_num_days := factor(num_days, exclude = NULL)]
 bills_with_payments_with_discounts[, discount_pct_off := factor(pct_off, exclude = NULL)]
 bills_with_payments_with_discounts[, discount_days_until_discount := factor(days_until_discount, exclude = NULL)]
 
-
 #compute number of days bill is due in
-pacman::p_load(lubridate)
 bills_with_payments_with_discounts[, num_days_to_pay := as.integer(ymd(due_date) - ymd(invoice_date))]
 bills_data = bills_with_payments_with_discounts[, .(
     paid_in_full = as.integer(any(paid_bill)), 
@@ -475,21 +479,21 @@ bills_data = bills_with_payments_with_discounts[, .(
     discount_days_until_discount = first(days_until_discount)
   ), by = id]
 
-
+bills_data[,discount_pct_off := factor(discount_days_until_discount, exclude = NULL)]
 #how many bills did this customer have previously?
-bills_data[, num_previous_bills := 0 : (.N - 1), by = customer_id]
+bills_data[, num_previous_bills_paid_on_time := 0 : (.N - 1), by = customer_id]
 
 #and how many of those did he pay on time?
 bills_data[, num_previous_bills_paid_on_time := cumsum(paid_in_full), by = customer_id]
 bills_data[, customer_id := NULL] #no need for customer id anymore; it won't be a feature
-bills_data[, id := NULL]
 
-bills_data[, pct_previous_payments := num_previous_bills_paid_on_time / num_previous_bills]
+
+bills_data[num_days_to_pay == 0, num_days_to_pay:=1]
+
 bills_data[, dollars_owed_per_day := tot_amount / num_days_to_pay]
-
 #to force classification, set y to be a factor
-bills_data[, paid_in_full := factor(as.numeric(paid_in_full))]
-
+bills_data[, paid_in_full := factor(paid_in_full)]
+bills_data[, id := NULL]
 
 ```
 
@@ -517,7 +521,7 @@ library(rJava)
 .jinit()
 gc()
 
-n_sub_train = 20000
+n_sub_train = 2000
 bills_data_train_sub = bills_data_train[sample(1 : .N, n_sub_train)]
 Xtrain = bills_data_train_sub[, -"paid_in_full"]
 ytrain = bills_data_train_sub[, paid_in_full]
