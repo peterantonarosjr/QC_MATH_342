@@ -437,37 +437,60 @@ Since this is the response, we would like to construct the very best design matr
 I will create the basic steps for you guys. First, join the three datasets in an intelligent way. You will need to examine the datasets beforehand.
 
 ```{r}
-bills_with_payments = left_join(bills, payments, by = c("id" = "bill_id"))
-bills_with_payments_with_discounts = left_join(bills_with_payments, discounts, by=c("discount_id" = "id"))
+bills_with_payments = merge(bills, payments, all.x = TRUE, by.x = "id", by.y = "bill_id")
+bills_with_payments[, id.y := NULL]
+bills_with_payments_with_discounts = merge(bills_with_payments, discounts, all.x = TRUE, by.x = "discount_id", by.y = "id")
+colnames(bills_with_payments_with_discounts)
+setorder(bills_with_payments_with_discounts, id) 
 ```
 
 Now create the binary response metric `paid_in_full` as the last column and create the beginnings of a design matrix `bills_data`. Ensure the unit / observation is bill i.e. each row should be one bill! 
 
 ```{r}
-bills_data = bills_with_payments_with_discounts %>%
-  mutate(total_amount = if_else(is.na(pct_off), tot_amount, tot_amount * (1-pct_off/100))) %>%
-  group_by(id)%>%
-  mutate(sum_of_payment_amount = sum(paid_amount))%>%
-  mutate(paid_in_full = if_else(sum_of_payment_amount >= total_amount, 1, 0, missing = 0)) %>%
-  slice(1) %>%
-  ungroup()
-
+bills_with_payments_with_discounts[, total_paid := sum(paid_amount, na.rm = TRUE), by = id]
+bills_with_payments_with_discounts[, paid_bill := total_paid >= tot_amount, by = id]
+bills_data = bills_with_payments_with_discounts[, .(paid_in_full = any(paid_bill)), by = id]
 table(bills_data$paid_in_full, useNA = "always")
 ```
 
 How should you add features from transformations (called "featurization")? What data type(s) should they be? Make some features below if you think of any useful ones. Name the columns appropriately so another data scientist can easily understand what information is in your variables.
 
 ```{r}
-bills_data = bills_data %>%
-  select(-id, -id.y, -num_days, -transaction_date, -pct_off, -days_until_discount, -sum_of_payment_amount, -paid_amount) %>%
-  mutate(num_of_days_to_pay = as.integer(ymd(due_date)-ymd(invoice_date)))%>%
-  select(-due_date, -invoice_date)%>%
-  mutate(discount_id = as.factor(discount_id)) %>%
-  group_by(customer_id) %>%
-  mutate(bill_num = row_number()) %>%
-  ungroup() %>%
-  select(-customer_id) %>%
-  relocate(paid_in_full, .after = last_col())
+#convert discount types to factors and include missingness as a legal level
+bills_with_payments_with_discounts[, discount_num_days := factor(num_days, exclude = NULL)]
+bills_with_payments_with_discounts[, discount_pct_off := factor(pct_off, exclude = NULL)]
+bills_with_payments_with_discounts[, discount_days_until_discount := factor(days_until_discount, exclude = NULL)]
+
+
+#compute number of days bill is due in
+pacman::p_load(lubridate)
+bills_with_payments_with_discounts[, num_days_to_pay := as.integer(ymd(due_date) - ymd(invoice_date))]
+bills_data = bills_with_payments_with_discounts[, .(
+    paid_in_full = as.integer(any(paid_bill)), 
+    customer_id = first(customer_id),
+    tot_amount = first(tot_amount),
+    num_days_to_pay = first(num_days_to_pay),
+    discount_num_days = first(discount_num_days),
+    discount_pct_off = first(pct_off),
+    discount_days_until_discount = first(days_until_discount)
+  ), by = id]
+
+
+#how many bills did this customer have previously?
+bills_data[, num_previous_bills := 0 : (.N - 1), by = customer_id]
+
+#and how many of those did he pay on time?
+bills_data[, num_previous_bills_paid_on_time := cumsum(paid_in_full), by = customer_id]
+bills_data[, customer_id := NULL] #no need for customer id anymore; it won't be a feature
+bills_data[, id := NULL]
+
+bills_data[, pct_previous_payments := num_previous_bills_paid_on_time / num_previous_bills]
+bills_data[, dollars_owed_per_day := tot_amount / num_days_to_pay]
+
+#to force classification, set y to be a factor
+bills_data[, paid_in_full := factor(as.numeric(paid_in_full))]
+
+
 ```
 
 Now let's do this exercise. Let's retain 25% of our data for test.
@@ -477,7 +500,9 @@ K = 4
 test_indices = sample(1 : nrow(bills_data), round(nrow(bills_data) / K))
 train_indices = setdiff(1 : nrow(bills_data), test_indices)
 bills_data_test = bills_data[test_indices, ]
-bills_data_train = bills_data[train_indices, ]
+bills_data_train = bills_data[train_indices,]
+
+
 ```
 
 Now try to build a classification tree model for `paid_in_full` with the features (use the `Xy` parameter in `YARF`). If you cannot get `YARF` to install, use the package `rpart` (the standard R tree package) instead. You will need to install it and read through some documentation to find the correct syntax.
@@ -485,48 +510,45 @@ Now try to build a classification tree model for `paid_in_full` with the feature
 Warning: this data is highly anonymized and there is likely zero signal! So don't expect to get predictive accuracy. The value of the exercise is in the practice. I think this exercise (with the joining exercise above) may be one of the most useful exercises in the entire semester.
 
 ```{r}
+
 pacman::p_load(YARF)
 options(java.parameters = "-Xmx8000m")
 library(rJava)
 .jinit()
 gc()
 
-#pacman::p_install_gh("kapelner/YARF/YARFJARs", ref = "dev")
-#pacman::p_install_gh("kapelner/YARF/YARF", ref = "dev", force = TRUE)
+n_sub_train = 20000
+bills_data_train_sub = bills_data_train[sample(1 : .N, n_sub_train)]
+Xtrain = bills_data_train_sub[, -"paid_in_full"]
+ytrain = bills_data_train_sub[, paid_in_full]
+classification_tree_mod = YARFCART(Xtrain, ytrain)
 
 
-bills_data_train$y = bills_data_train$paid_in_full
-bills_data_train$paid_in_full = NULL
-
-y_train = as.factor(bills_data_train$y)
-bills_data_train$y = NULL
-
-yarfTree = YARFCART(X = bills_data_train, y = y_train, calculate_oob_error = FALSE)
 ```
 
 For those of you who installed `YARF`, what are the number of nodes and depth of the tree? 
 
 ```{r}
-get_tree_num_nodes_leaves_max_depths(yarfTree)
+get_tree_num_nodes_leaves_max_depths(classification_tree_mod)
 ```
 
 For those of you who installed `YARF`, print out an image of the tree.
 
 ```{r}
-illustrate_trees(yarfTree, max_depth=4, open_file=TRUE)
+illustrate_trees(classification_tree_mod, max_depth=4, open_file=TRUE)
 ```
 
 Predict on the test set and report the misclassifcation error
 
 ```{r}
-y_test = as.factor(bills_data_test$paid_in_full)
-bills_data_test$paid_in_full = NULL
-
-yhat = predict(yarfTree, bills_data_test)
-
-mc_error_oos = mean(y_test != yhat)
+Xtest = bills_data_test[, -"paid_in_full"]
+ytest = bills_data_test[, paid_in_full]
+yhat_test = predict(classification_tree_mod, Xtest)
+mc_error_oos = mean(ytest != yhat_test)
 
 mc_error_oos
+
+bills_data
 ```
 
 ###### Everything below here is due with lab 9
@@ -535,7 +557,7 @@ Report the following error metrics: misclassifcation error, precision, recall, F
 and compute a confusion matrix.
 
 ```{r}
-conf_matrix = table(y_test, yhat)
+conf_matrix = table(ytest, yhat_test)
 
 n = sum(conf_matrix)
 fp = conf_matrix[1,2]
@@ -575,8 +597,6 @@ FOR
 
 Is this a good model? (yes/no and explain).
 
-With a misclassification rate of about 22% I would say this model is decent. Its not great but its better than the null model which albeit a low bar is still a bar to exceed.
-
 
 There are probability asymmetric costs to the two types of errors. Assign the costs below and calculate oos total cost.
 
@@ -588,7 +608,7 @@ There are probability asymmetric costs to the two types of errors. Assign the co
 We now wish to do asymmetric cost classification. Fit a logistic regression model to this data.
 
 ```{r}
-logistic_mod = glm(y_train ~ ., bills_data_train, family = binomial(link = "logit"))
+logistic_mod = glm(ytrain ~ ., Xtrain, family = binomial(link = "logit"))
 
 p_hats_train = predict(logistic_mod, bills_data_train, type ="response")
 
@@ -598,6 +618,7 @@ p_hats_test = predict(logistic_mod, bills_data_test, type="response")
 Use the function from class to calculate all the error metrics for the values of the probability threshold being 0.001, 0.002, ..., 0.999 in a data frame.
 
 ```{r}
+bills_data_train
 compute_metrics_prob_classifier = function(p_hats, y_true, res = 0.001){
   #we first make the grid of all prob thresholds
   p_thresholds = seq(0 + res, 1 - res, by = res) #values of 0 or 1 are trivial
