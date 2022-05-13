@@ -771,7 +771,10 @@ adult = adult[sample(1 : nrow(adult)), ]
 Copy from the previous lab all cleanups you did to this dataset.
 
 ```{r}
-#
+adult$fnlwgt = NULL
+adult$occupation = NULL
+adult$native_country = NULL
+
 ```
 
 
@@ -812,7 +815,9 @@ We will be doing model selection using a basis of linear features consisting of 
 Create a model matrix from the training data containing all these features. Make sure it has an intercept column too (the one vector is usually an important feature). Cast it as a data frame so we can use it more easily for modeling later on. We're going to need those model matrices (as data frames) for both the select and test sets. So make them here too (copy-paste). Make sure their dimensions are sensible.
 
 ```{r}
-#TO-DO
+Xmm_train = data.frame(model.matrix(~., Xtrain))
+Xmm_select = data.frame(model.matrix(~., Xselect))
+Xmm_test = data.frame(model.matrix(~.,Xtest))
 dim(Xmm_train)
 dim(Xmm_select)
 dim(Xmm_test)
@@ -831,10 +836,33 @@ oos_brier_by_iteration = c() #keep a growing list of briers by iteration
 i = 1
 
 repeat {
-
-  #TO-DO 
-  #wrap glm and predict calls with use suppressWarnings() so the console is clean during run
+  all_briers = array(NA, p_plus_one)
   
+  for(j_try in 1:p_plus_one){
+    
+    if (j_try %in% predictor_by_iteration){
+      next
+    }
+    Xmm_sub = Xmm_train[,c(predictor_by_iteration, j_try), drop=FALSE]
+    log_mod = glm(ytrain ~., Xmm_sub, type = "binomial")
+    phat_train = predict(log_mod, Xmm_sub, type = "response")
+    
+    all_briers[j_try] = -mean(-(ytrain-phat_train)^2)
+  }
+  
+  jstar = which.max(all_briers)
+  
+  predictor_by_iteration =  c(predictor_by_iteration, jstar)
+  
+  in_sample_brier_by_iteration = c(in_sample_brier_by_iteration, jstar)
+  
+  
+  Xmm_sub = Xmm_train[,predictor_by_iteration, drop = FALSE]
+  log_mod = glm(yselect ~., Xmm_sub, type = "binomial")
+  phat_select = predict(log_mod, Xmm_sub, type = "response")
+  oos_brier = mean(-(yselect-phat_select)^2)
+  
+  oos_brier_by_iteration = c(oos_brier_by_iteration, oos_brier)
   if (i > Nsplitsize || i > p_plus_one){
     break
   }
@@ -844,6 +872,16 @@ repeat {
 Plot the in-sample and oos (select set) Brier score by $p$. Does this look like what's expected?
 
 ```{r}
-#TO-DO
+sim = data.frame(
+  
+  iteration = 1: length(in_sample_brier_by_iteration),
+  in_sample_brier_by_iteration = in_sample_brier_by_iteration,
+  oos_brier_by_iteration = oos_brier_by_iteration
+)
+
+
+ggplot(sim)+
+  geom_line(aes(x=iteration, y= in_sample_brier_by_iteration), color = "blue")+
+  geom_line(aes(x=iteration, y = oos_brier_by_iteration), color = "red")
 ```
 
